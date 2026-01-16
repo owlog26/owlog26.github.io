@@ -152,7 +152,7 @@ async function runMainScan(img) {
 
         // C. [합계] 마지막 숫자 뭉치에서 뒤의 5자리만 취함
         const totalNums = rawTotal.match(/\d+/g);
-        
+
         if (totalNums) {
             let sStr = totalNums[totalNums.length - 1];
             if (parseInt(sStr) > 99999) sStr = sStr.slice(-5); // 5자리 제한
@@ -167,10 +167,7 @@ async function runMainScan(img) {
             saveBtn.disabled = false;
             statusText.innerText = (currentLang === 'ko') ? "분석 완료" : "COMPLETE";
             statusText.classList.replace('text-blue-500', 'text-green-500');
-        } else if (totalNum <= 10000) {
-            saveBtn.disabled = true;
-            statusText.innerText = (currentLang === 'ko') ? "10,000점 이하 등록 불가" : "SCORE TOO LOW (<10,000)";
-        }
+        } 
         else {
             statusText.classList.replace('text-blue-500', 'text-red-500');
             statusText.innerText = (currentLang === 'ko') ? "인식 실패" : "SCAN FAILED";
