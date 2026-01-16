@@ -132,30 +132,38 @@ async function changeLang(lang) {
 }
 
 /**
- * 국가 리스트 초기화 (코드만 표시 버전)
+ * [script.js] 국가 리스트 초기화 (국가명 표시 버전)
  */
-function initRegionSelect(lang) {
+function initRegionSelect(lang = 'en') {
     const regionSelect = document.getElementById('userRegion');
     if (!regionSelect) return;
 
-    const currentVal = regionSelect.value; // 현재 선택값 유지
+    const currentVal = regionSelect.value;
     regionSelect.innerHTML = '';
 
-    // isoCodes 배열의 값을 대문자로 그대로 표시
+    // 브라우저 내장 국가명 변환 도구 (설정된 언어 기준)
+    const regionNames = new Intl.DisplayNames([lang], { type: 'region' });
+
     isoCodes.forEach(code => {
         const option = document.createElement('option');
         option.value = code;
-        option.text = code.toUpperCase(); // KR, US 등 코드만 표시
+        
+        try {
+            // KR -> "대한민국", US -> "미국" 등으로 변환
+            option.text = regionNames.of(code); 
+        } catch (e) {
+            option.text = code.toUpperCase(); // 변환 실패 시 코드 표시
+        }
+        
         regionSelect.add(option);
     });
 
-    // 기타 옵션
+    // 기타 옵션 추가
     const etc = document.createElement('option');
     etc.value = "ETC";
-    etc.text = "ETC";
+    etc.text = lang === 'ko' ? "기타" : "ETC";
     regionSelect.add(etc);
 
-    // 선택값 복구
     if (currentVal) regionSelect.value = currentVal;
     else regionSelect.value = "US";
 }
@@ -648,20 +656,28 @@ async function initDetailedRankPage() {
     }
     levelSelect.value = currentLevel;
 
-    // 3. 국가 필터 옵션 (isoCodes 변수 참고)
+    // 3. [수정] 국가 필터 옵션 생성 (국가명 표시 및 다국어 지원)
     const currentRegion = regionSelect.value;
-    // translations[lang]['label_region']이 "All Regions" 또는 "국가 선택" 등으로 표시되도록 함
     regionSelect.innerHTML = `<option value="">${translations[lang]['label_region'] || 'All Regions'}</option>`;
 
-    // 전역 변수 isoCodes를 사용하여 옵션 생성
+    // 브라우저 내장 도구로 국가명 변환 설정
+    const regionNames = new Intl.DisplayNames([lang], { type: 'region' });
+
     isoCodes.forEach(code => {
         const opt = document.createElement('option');
         opt.value = code;
-        opt.text = code.toUpperCase();
+        
+        try {
+            // "KR" -> "대한민국" 등으로 변환하여 표시
+            opt.text = regionNames.of(code); 
+        } catch (e) {
+            opt.text = code.toUpperCase();
+        }
+        
         regionSelect.add(opt);
     });
+    
     regionSelect.value = currentRegion;
-
     handleRankFilterChange();
 }
 

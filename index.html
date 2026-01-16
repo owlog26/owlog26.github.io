@@ -80,6 +80,20 @@
             background-color: #f9fafb !important;
             /* gray-50 */
         }
+        /* 국가 선택창 너비 고정 및 말줄임표 설정 */
+    #userRegion {
+        max-width: 110px; /* 너비 고정 */
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
+        display: inline-block;
+    }
+    
+    /* 드롭다운 내부 옵션들도 브라우저 지원에 따라 말줄임 적용 시도 */
+    #userRegion option {
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
     </style>
 </head>
 
