@@ -56,14 +56,15 @@
             <i class="fa-solid fa-bars text-xl"></i>
         </button>
         <div class="flex items-center gap-1.5 cursor-pointer" onclick="switchTab('home')">
-    <h1 class="text-2xl md:text-3xl font-black tracking-tighter text-black">
-        OWLOG
-    </h1>
-    
-    <span class="bg-red-500 text-white text-[9px] md:text-[10px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tighter leading-none mb-1 md:mb-2">
-        Beta
-    </span>
-</div>
+            <h1 class="text-2xl md:text-3xl font-black tracking-tighter text-black">
+                OWLOG
+            </h1>
+
+            <span
+                class="bg-red-500 text-white text-[9px] md:text-[10px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tighter leading-none mb-1 md:mb-2">
+                Beta
+            </span>
+        </div>
         <div class="flex items-center gap-2 text-xs font-bold text-gray-400">
             <button onclick="changeLang('en')" id="btn-en" class="transition px-1 uppercase">EN</button>
             <span class="text-gray-200">|</span>
@@ -207,7 +208,7 @@
         </div>
 
         <!-- 검색기록-->
-        <div id="section-search" class="hidden mt-4 pb-20">
+        <div id="section-search" class="hidden mt+4">
 
             <div id="search-loading-view"
                 class="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-[32px]">
@@ -276,7 +277,10 @@
                         data-i18n="tab_search_stats">Stats</button>
                 </div>
 
-                <div id="search-content-records" class="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0"></div>
+                <div id="search-content-records" class="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
+                </div>
+
+                <div id="search-pagination" class="mt-12 flex justify-center items-center gap-2"></div>
                 <div id="search-content-summary" class="hidden space-y-3"></div>
             </div>
         </div>

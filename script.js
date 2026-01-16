@@ -895,55 +895,41 @@ function performUserSearch(query) {
     // 기본 탭인 '기록' 표시 실행
     switchSearchTab('records');
 }
+let searchCurrentPage = 1;
+const searchItemsPerPage = 15;
+
 /**
- * 검색 결과 페이지 내 탭 전환 (기록 <-> 요약)
+ * 1. 검색 탭 전환 로직 수정
  */
 function switchSearchTab(type) {
     const recCont = document.getElementById('search-content-records');
     const sumCont = document.getElementById('search-content-summary');
+    const paginCont = document.getElementById('search-pagination'); // 페이징 컨테이너
     const recBtn = document.getElementById('search-tab-records');
     const sumBtn = document.getElementById('search-tab-summary');
     const lang = localStorage.getItem('owlog_lang') || 'en';
 
-    if (!recCont || !sumCont) return;
-
-    // [핵심] 전환 시 두 컨테이너의 내용을 즉시 비워 잔상을 제거합니다.
-    recCont.innerHTML = '';
-    sumCont.innerHTML = '';
+    if (!recCont || !sumCont || !paginCont) return;
 
     if (type === 'records') {
-        // 기록 탭 활성화
-        recCont.style.display = ''; // 인라인 스타일 제거 (CSS 클래스 적용)
         recCont.classList.remove('hidden');
+        paginCont.classList.remove('hidden'); // 페이징 표시
         sumCont.classList.add('hidden');
-        sumCont.style.display = 'none'; // 강제 숨김
-
-        // 버튼 스타일 (Home 탭과 동일한 로직)
-        recBtn.classList.add('tab-active');
-        recBtn.classList.remove('text-gray-400', 'font-medium');
-        sumBtn.classList.remove('tab-active');
-        sumBtn.classList.add('text-gray-400', 'font-medium');
-
-        // 기록 데이터 렌더링 (최고 점수 순 정렬)
-        const sortedRecords = [...searchUserRecordsRef].sort((a, b) => Number(b.totalScore) - Number(a.totalScore));
-        sortedRecords.forEach((item, idx) => {
-            const card = createDetailedRankCard(item, idx + 1, lang);
-            recCont.appendChild(card);
-        });
+        
+        recBtn.className = "flex-1 py-4 text-center text-[13px] md:text-sm tab-active transition-all";
+        sumBtn.className = "flex-1 py-4 text-center text-[13px] md:text-sm text-gray-400 font-medium transition-all";
+        
+        // 페이지 초기화 및 렌더링
+        searchCurrentPage = 1;
+        renderSearchRecordsPage(); 
     } else {
-        // 요약 탭 활성화
-        sumCont.style.display = 'block'; // 요약 탭은 일반 블록 표시
         sumCont.classList.remove('hidden');
         recCont.classList.add('hidden');
-        recCont.style.display = 'none'; // 기록 탭 강제 숨김
+        paginCont.classList.add('hidden'); // 요약 탭에서는 페이징 숨김
+        
+        sumBtn.className = "flex-1 py-4 text-center text-[13px] md:text-sm tab-active transition-all";
+        recBtn.className = "flex-1 py-4 text-center text-[13px] md:text-sm text-gray-400 font-medium transition-all";
 
-        // 버튼 스타일
-        sumBtn.classList.add('tab-active');
-        sumBtn.classList.remove('text-gray-400', 'font-medium');
-        recBtn.classList.remove('tab-active');
-        recBtn.classList.add('text-gray-400', 'font-medium');
-
-        // 캐릭터 통계 요약 렌더링
         renderSummaryStats(sumCont, lang);
     }
 }
@@ -1084,3 +1070,59 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+function renderSearchRecordsPage() {
+    const container = document.getElementById('search-content-records');
+    const lang = localStorage.getItem('owlog_lang') || 'en';
+    if (!container) return;
+
+    // 데이터 슬라이싱 (15개씩)
+    const start = (searchCurrentPage - 1) * searchItemsPerPage;
+    const end = start + searchItemsPerPage;
+    const pagedRecords = searchUserRecordsRef.slice(start, end);
+
+    container.innerHTML = '';
+    
+    // 카드 렌더링
+    pagedRecords.forEach((item, idx) => {
+        const globalRank = start + idx + 1;
+        const card = createDetailedRankCard(item, globalRank, lang);
+        container.appendChild(card);
+    });
+
+    // 하단 페이징 버튼 생성
+    renderSearchPagination();
+}
+
+/**
+ * 3. 검색 기록 전용 페이징 버튼 생성
+ */
+function renderSearchPagination() {
+    const paginContainer = document.getElementById('search-pagination');
+    if (!paginContainer) return;
+
+    paginContainer.innerHTML = '';
+    const totalPages = Math.ceil(searchUserRecordsRef.length / searchItemsPerPage);
+    
+    // 1페이지뿐이라면 페이징 표시 안 함
+    if (totalPages <= 1) return;
+
+    for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.innerText = i;
+        // 디자인 통일: 상세 랭킹의 페이징 스타일과 동일하게 적용
+        btn.className = `w-10 h-10 rounded-xl text-sm font-black transition-all ${
+            searchCurrentPage === i 
+            ? 'bg-black text-white shadow-lg scale-110' 
+            : 'bg-white border border-gray-100 text-gray-400 hover:bg-gray-100'
+        }`;
+        
+        btn.onclick = () => {
+            searchCurrentPage = i;
+            renderSearchRecordsPage();
+            // 페이지 상단이 아닌 결과 탭 시작 부분으로 스크롤 이동
+            document.getElementById('search-tab-records').scrollIntoView({ behavior: 'smooth' });
+        };
+        paginContainer.appendChild(btn);
+    }
+}
