@@ -31,6 +31,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2. '?howtoregister' 또는 '?tab=guide' 파라미터가 있는지 확인
     // 사용자가 owlog.zyx/?howtoregister 로 접속했을 때
+    if (userId) {
+        // 기존에 정의된 handleDirectJump 함수를 호출합니다.
+        handleDirectJump(userId);
+    }
+    else if (urlParams.has('howtoregister')) {
+        switchHomeTab('guide');
+    }
+    // 1. ?ranking 파라미터가 있는 경우
+    else if (urlParams.has('ranking')) {
+        switchTab('ranking'); // 랭킹 탭으로 이동
+        loadMainRanking();    // 데이터 로드 및 로더 제어 실행
+        window.scrollTo({ top: 0, behavior: 'smooth' }); // 상단으로 부드럽게 이동
+    }
+    // (선택사항) 확장성을 위해 ?tab=guide 형태도 지원하고 싶다면:
+    else if (urlParams.get('tab') === 'guide') {
+        switchHomeTab('guide');
+    }
+    // 2. '?howtoregister' 또는 '?tab=guide' 파라미터가 있는지 확인
+    // 사용자가 owlog.zyx/?howtoregister 로 접속했을 때
     if (urlParams.has('howtoregister')) {
         switchHomeTab('guide');
     }
