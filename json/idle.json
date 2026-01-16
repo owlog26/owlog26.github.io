@@ -1,5 +1,7 @@
 {
   "ko": {
+   "guide_pending_title": "조금만 기다려주세요!",
+    "guide_pending_desc": "가이드 페이지는 빌드나, 데이터 베이스를 작업하려고 합니다.<br>오랜 시간이 지난 게임이지만 다시 한번 활기가 넘치면 좋겠군요.",
     "how_to_register": "등록 방법",
     "web_title": "OWLOG - 나의 기록을 공유하세요",
     "msg_loading": "데이터를 동기화 중입니다...",
@@ -51,7 +53,7 @@
     "msg_scan_first": "데이터를 먼저 스캔해주세요."
   },
   "en": {
-    "how_to_register": "How to Register",
+     "how_to_register": "How to Register",
     "web_title": "OWLOG - Check your rift record.",
     "msg_loading": "Syncing User Data...",
     "search_page_title": "User Profile",
@@ -99,6 +101,8 @@
     "label_score": "Total Score",
     "btn_save": "Save Record",
     "msg_save_ok": "Record analyzed successfully!",
-    "msg_scan_first": "Please scan the data first."
+    "msg_scan_first": "Please scan the data first.",
+    "guide_pending_title": "Please wait a moment!",
+    "guide_pending_desc": "We are working on adding builds and a database to the guide page. Although it's been a long time, we hope the game becomes lively once again."
   }
 }
