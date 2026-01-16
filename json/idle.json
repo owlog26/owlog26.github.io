@@ -54,6 +54,7 @@
     "btn_back": "< 돌아가기"
   },
   "en": {
+    "btn_back": "< Back",
      "how_to_register": "How to Register",
     "web_title": "OWLOG - Check your rift record.",
     "msg_loading": "Syncing User Data...",

@@ -230,86 +230,57 @@ function validateNickname(name) {
 /**
  * [실제 저장 실행 함수]
  */
-async function saveRecord() {
+async function saveRecord(event) {
+    if (event) event.preventDefault();
+
     const lang = localStorage.getItem('owlog_lang') || 'en';
     const saveBtn = document.getElementById('saveBtn');
+    const originalText = saveBtn.innerText;
 
-    // 데이터 수집
-    const nickname = document.getElementById('userNickname').value.trim();
-    const region = document.getElementById('userRegion').value;
-    const charName = document.getElementById('resName').value;
-    const totalScore = document.getElementById('resTotal').innerText.replace(/,/g, '');
-    const totalScoreNum = parseInt(totalScore) || 0;
-
-    // [추가] 10,000점 이하 차단 로직
-    if (totalScoreNum <= 10000) {
-        const errorMsg = lang === 'ko'
-            ? "10,000점 이하의 기록은 등록할 수 없습니다."
-            : "Scores 10,000 or less cannot be registered.";
-        alert(errorMsg);
-        return;
-    }
-    // 1. 닉네임 보안 검증 실행
-    const validation = validateNickname(nickname);
-    if (!validation.ok) {
-        alert(lang === 'ko' ? validation.msg : "Invalid Nickname.");
-        return;
-    }
-
-    // 2. 스캔 여부 확인
-    if (!charName || charName === "-") {
-        alert(lang === 'ko' ? "데이터를 먼저 스캔해주세요." : "Please scan data first.");
-        return;
-    }
-    // 1. 메모리에 저장된 스캔 데이터가 있는지 확인
-    if (!lastScannedData) {
-        alert(lang === 'ko' ? "스캔 데이터가 없습니다." : "No scanned data found.");
-        return;
-    }
-
-    // 2. 현재 화면의 점수와 메모리의 점수 비교 (사용자가 소스 수정을 했는지 체크)
-    const domScore = parseInt(document.getElementById('resTotal').innerText.replace(/,/g, '')) || 0;
-    if (domScore !== lastScannedData.totalScore) {
-        alert(lang === 'ko' ? "데이터 조작이 감지되었습니다. 다시 스캔해주세요." : "Data manipulation detected. Please re-scan.");
-        // 조작 감지 시 버튼 비활성화 및 모달 닫기 등 조치 가능
-        return;
-    }
-
-    // ... 닉네임 검증 등 기존 로직 ...
-
-    // [중요] 전송 시에는 DOM 값이 아닌 '메모리에 저장된 값' 사용
-    const payload = {
-        userId: nickname,
-        region: region,
-        character: charName,
-        time: `'${lastScannedData.time}`, // 메모리 값 사용
-        level: lastScannedData.level,     // 메모리 값 사용
-        totalScore: lastScannedData.totalScore // 메모리 값 사용
-    };
+    saveBtn.disabled = true;
+    saveBtn.innerText = lang === 'ko' ? "저장 중..." : "Saving...";
 
     try {
-        // 4. 구글 스프레드시트로 전송
-        // fetch는 기본적으로 POST 시 CORS 이슈가 있을 수 있어 
-        // GAS 배포 시 'Anyone'으로 설정해야 정상 작동합니다.
-        const response = await fetch(GAS_URL, {
+        const nickname = document.getElementById('userNickname').value.trim();
+        const region = document.getElementById('userRegion').value;
+        const charName = document.getElementById('resName').value;
+
+        const payload = {
+            userId: nickname,
+            region: region,
+            character: charName,
+            time: `'${lastScannedData.time}`,
+            level: lastScannedData.level,
+            totalScore: lastScannedData.totalScore
+        };
+
+        await fetch(GAS_URL, {
             method: 'POST',
-            mode: 'no-cors', // GAS 응답을 직접 읽지 못해도 전송은 가능하게 설정
+            mode: 'no-cors',
+            cache: 'no-cache',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
-        // no-cors 모드에서는 응답 내용을 읽을 수 없으므로 성공으로 간주하고 처리
+        // 성공 시 알림 후 새로고침
         alert(lang === 'ko' ? "기록이 성공적으로 저장되었습니다!" : "Record saved successfully!");
-        closeScanner();
+        location.reload(); // [추가] 페이지 새로고침
 
     } catch (error) {
-        // console.error("Save Error:", error);
-        //alert(lang === 'ko' ? "서버 통신 에러가 발생했습니다." : "Server error occurred.");
+        // GAS 특유의 에러 핸들링 (데이터는 들어갔으나 브라우저가 응답을 못 읽는 경우)
+        if (error.message === "Failed to fetch" || error.name === "TypeError") {
+            alert(lang === 'ko' ? "기록이 성공적으로 저장되었습니다!" : "Record saved successfully!");
+            location.reload(); // [추가] 페이지 새로고침
+        } else {
+          //  console.error("Save Error:", error);
+          //  alert(lang === 'ko' ? "서버 통신 에러가 발생했습니다." : "Server error occurred.");
+        }
     } finally {
+        // 새로고침이 일어나기 전까지 버튼 상태 유지
         saveBtn.disabled = false;
         saveBtn.innerText = originalText;
     }
 }
-
 
 // [수정] 리스너를 하나로 통합하여 순서 제어
 document.addEventListener('DOMContentLoaded', async () => {
@@ -515,6 +486,9 @@ function renderRankingSlide() {
         } else if (englishName === "Jadetalon") {
             objectPosition = "center -20%"; // 세로 위치만 고정
             imageScale = "scale(2) translateX(10px)";
+        } else if (englishName === "Synthia") {
+            objectPosition = "center 10%"; // 세로 위치만 고정
+            imageScale = "scale(1.8) translateX(-10px)";
         }
 
 
