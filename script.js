@@ -36,7 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // 1. ?ranking 파라미터가 있는 경우
     else if (urlParams.has('ranking')) {
-        switchTab('ranking');
+        switchTab('ranking'); // 랭킹 탭으로 이동
+        loadMainRanking();    // 데이터 로드 및 로더 제어 실행
         window.scrollTo({ top: 0, behavior: 'smooth' }); // 상단으로 부드럽게 이동
     }
     // (선택사항) 확장성을 위해 ?tab=guide 형태도 지원하고 싶다면:
@@ -293,7 +294,9 @@ function switchTab(tab) {
     if (tab === 'ranking') {
         sectionRank.classList.remove('hidden');
         if (navs.rank) navs.rank.classList.replace('text-gray-300', 'text-black');
+        loadMainRanking();
         initDetailedRankPage();
+
     }
     if (tab === 'guide') {
         sectionGuide.classList.remove('hidden');
@@ -1156,3 +1159,38 @@ function triggerScanner() {
     }
 }
 
+
+async function loadMainRanking() {
+    const loader = document.getElementById('rank-main-loader');
+    const content = document.getElementById('rank-main-content');
+
+    // 1. 데이터 로드 시작: 로더 보이기, 컨텐츠 숨기기
+    if (loader) loader.classList.remove('hidden');
+    if (content) content.classList.add('hidden');
+
+    try {
+        const response = await fetch(GAS_URL);
+        const data = await response.json();
+
+        // [정렬 로직] 레벨 -> 점수 순 (기존 로직 사용)
+        const sortedData = data.sort((a, b) => {
+            const lvA = parseInt(String(a.level || 0).replace(/[^0-9]/g, '')) || 0;
+            const lvB = parseInt(String(b.level || 0).replace(/[^0-9]/g, '')) || 0;
+            if (lvB !== lvA) return lvB - lvA;
+            return (Number(b.totalScore) || 0) - (Number(a.totalScore) || 0);
+        });
+
+        // 2. 렌더링 실행
+        if (typeof renderDetailedRankList === 'function') {
+            renderDetailedRankList(sortedData);
+        }
+
+        // 3. 로딩 완료: 로더 숨기기, 컨텐츠 보이기
+        if (loader) loader.classList.add('hidden');
+        if (content) content.classList.remove('hidden');
+
+    } catch (error) {
+        console.error("Load Error:", error);
+        if (loader) loader.innerHTML = `<p class="text-[10px] font-bold text-red-400">FAILED TO SYNC DATABASE</p>`;
+    }
+}

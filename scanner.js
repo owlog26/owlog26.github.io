@@ -138,9 +138,13 @@ async function runMainScan(img) {
         let res = { time: "00:00", level: "0", total: "0" };
 
         // [시간 보정]
+        // A. [시간] 스프레드시트 '분:초' 인식용 보정
+        // [수정] 홑따옴표(')를 추가하여 스프레드시트의 자동 시간 변환 방지
         const tM = rawTime.match(/\d{1,2}[:;.\s]\d{2}/);
         if (tM) {
-            res.time = tM[0].replace(/[;.\s]/g, ':').padStart(5, '0'); // 예: "27:45"
+            const timeStr = tM[0].replace(/[;.\s]/g, ':').padStart(5, '0'); // MM:SS 추출
+            // 앞에 '를 붙여 "문자열"임을 명시 (시트에서 27:45로 정확히 표시됨)
+            res.time = `'${timeStr}`;
         }
         // B. [레벨] 배율 기호 제외하고 마지막 숫자 '11'만 추출
         const lvNumbers = rawLevel.replace(/[SIl|]/g, '1').match(/\d+/g);
@@ -153,8 +157,8 @@ async function runMainScan(img) {
             if (parseInt(sStr) > 99999) sStr = sStr.slice(-5); // 5자리 제한
             res.total = parseInt(sStr).toLocaleString();
         }
-        // UI 업데이트 (적 처치 필드 제외)// UI 업데이트: 화면에는 보기 편하게 분:초(27:45)만 표시// [수정] 화면 표시 (이제 ' 기호 없이 27:45로 나옵니다)
-        document.getElementById('resTime').innerText = res.time;
+        // UI 업데이트 (적 처치 필드 제외)// UI 업데이트: 화면에는 보기 편하게 분:초(27:45)만 표시
+        document.getElementById('resTime').innerText = res.time.replace(`'`,'');
         document.getElementById('resLevel').innerText = res.level;
         document.getElementById('resTotal').innerText = res.total;
         // 최종 유효성 검사

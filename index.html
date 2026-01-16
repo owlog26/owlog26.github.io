@@ -87,14 +87,13 @@
 
     <header class="flex justify-between items-center px-4 py-3 border-b border-gray-100 bg-white sticky top-0 z-50">
         <button onclick="openScanner()"
-            class="w-10 h-10 flex items-center justify-center hover:bg-gray-50 rounded-full transition">
+            class="w-10 h-10 flex items-center justify-center hover:bg-gray-50 rounded-full transition-all active:scale-90"
+            aria-label="Add Record">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-900" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
         </button>
-
-        <input type="file" id="imageInput" accept="image/*" class="hidden">
         <div class="flex items-center gap-1.5 cursor-pointer" onclick="switchTab('home')">
             <h1 class="text-2xl md:text-3xl font-black tracking-tighter text-black">
                 OWLOG
@@ -248,8 +247,20 @@
                 </div>
             </div>
 
-            <div id="detailed-rank-list" class="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4"></div>
-            <div id="detailed-rank-pagination" class="mt-12 flex justify-center items-center gap-2"></div>
+
+            <div id="rank-main-loader" class="flex flex-col items-center justify-center py-20">
+                <div class="relative w-12 h-12">
+                    <div class="absolute inset-0 border-4 border-gray-100 rounded-full"></div>
+                    <div class="absolute inset-0 border-4 border-t-black rounded-full animate-spin"></div>
+                </div>
+                <p class="mt-4 text-[10px] font-black text-gray-400 uppercase tracking-widest animate-pulse">Syncing
+                    Database...</p>
+            </div>
+
+            <div id="rank-main-content" class="hidden">
+                <div id="detailed-rank-list" class="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4"></div>
+                <div id="detailed-rank-pagination" class="mt-12 flex justify-center items-center gap-2"></div>
+            </div>
         </div>
         <!-- 랭킹 끝 -->
 
