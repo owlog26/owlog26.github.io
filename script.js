@@ -212,8 +212,10 @@ async function saveRecord() {
     const region = document.getElementById('userRegion').value;
     const charName = document.getElementById('resName').value;
     const totalScore = document.getElementById('resTotal').innerText.replace(/,/g, '');
+    const totalScoreNum = parseInt(totalScore) || 0;
+
     // [추가] 10,000점 이하 차단 로직
-    if (totalScore <= 10000) {
+    if (totalScoreNum <= 10000) {
         const errorMsg = lang === 'ko'
             ? "10,000점 이하의 기록은 등록할 수 없습니다."
             : "Scores 10,000 or less cannot be registered.";
@@ -548,12 +550,12 @@ async function loadRanking() {
                 return levelB - levelA;
             }
 
-          /*  // 2순위: 합계 점수 (내림차순 - 점수가 높을수록 위로)
-            const scoreA = Number(a.totalScore) || 0;
-            const scoreB = Number(b.totalScore) || 0;
-            if (scoreB !== scoreA) {
-                return scoreB - scoreA;
-            }*/
+            /*  // 2순위: 합계 점수 (내림차순 - 점수가 높을수록 위로)
+              const scoreA = Number(a.totalScore) || 0;
+              const scoreB = Number(b.totalScore) || 0;
+              if (scoreB !== scoreA) {
+                  return scoreB - scoreA;
+              }*/
 
             // 3순위: 시간 (오름차순 - 시간이 짧을수록 위로)
             // '00:27:45' 형식끼리 비교하므로 localeCompare가 정확합니다.
