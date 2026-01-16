@@ -1,5 +1,6 @@
 {
   "ko": {
+    "how_to_register": "등록 방법",
     "web_title": "OWLOG - 나의 기록을 공유하세요",
     "msg_loading": "데이터를 동기화 중입니다...",
     "search_page_title": "유저 프로필",
@@ -50,6 +51,7 @@
     "msg_scan_first": "데이터를 먼저 스캔해주세요."
   },
   "en": {
+    "how_to_register": "How to Register",
     "web_title": "OWLOG - Check your rift record.",
     "msg_loading": "Syncing User Data...",
     "search_page_title": "User Profile",

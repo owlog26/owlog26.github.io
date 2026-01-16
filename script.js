@@ -305,45 +305,47 @@ function switchTab(tab) {
 }
 
 /**
- * 2. 홈 섹션 내부 서브 탭 전환 (Ranking <-> Guide)
+ * 홈 섹션 내부 탭 전환 로직
+ * @param {string} tab - 'ranking' 또는 'guide'
  */
 /**
- * 홈 섹션 내부 탭 전환 (Ranking <-> Guide)
+ * 홈 섹션 내부 탭 전환 (강제 스타일 제어 버전)
  */
 function switchHomeTab(tab) {
     const rankArea = document.getElementById('content-ranking');
     const guideArea = document.getElementById('content-guide');
-    
-    // 탭 버튼의 활성화 상태를 바꾸기 위한 요소들
-    const tabRankBtn = document.getElementById('home-tab-ranking');
-    const tabGuideBtn = document.getElementById('home-tab-guide');
+    const btnRank = document.getElementById('home-tab-ranking');
+    const btnGuide = document.getElementById('home-tab-guide');
+
+    // 디버깅용: 콘솔에서 요소가 잡히는지 확인 (F12 눌러서 확인 가능)
+    if (!rankArea || !guideArea) {
+        console.error("ID를 찾을 수 없습니다: content-ranking 또는 content-guide");
+        return;
+    }
 
     if (tab === 'ranking') {
-        // 1. 콘텐츠 교체
-        rankArea?.classList.remove('hidden');
-        guideArea?.classList.add('hidden');
+        // [랭킹 보기]
+        // 인라인 스타일로 강제 노출 (기존 grid 레이아웃 유지)
+        rankArea.style.setProperty('display', 'grid', 'important'); 
+        guideArea.style.setProperty('display', 'none', 'important');
 
-        // 2. 버튼 스타일 변경
-        tabRankBtn?.classList.add('tab-active');
-        tabRankBtn?.classList.remove('text-gray-400', 'font-medium');
-        tabGuideBtn?.classList.remove('tab-active');
-        tabGuideBtn?.classList.add('text-gray-400', 'font-medium');
+        // 버튼 스타일 업데이트
+        btnRank.className = "flex-1 py-4 text-center text-[13px] md:text-sm tab-active transition-all";
+        btnGuide.className = "flex-1 py-4 text-center text-[13px] md:text-sm text-gray-400 font-medium transition-all";
 
-        // 3. 랭킹 탭으로 돌아왔으므로 자동 롤링 다시 시작
         if (typeof startRankingTimer === 'function') startRankingTimer();
     } 
     else if (tab === 'guide') {
-        // 1. 콘텐츠 교체
-        rankArea?.classList.add('hidden');
-        guideArea?.classList.remove('hidden');
+        // [가이드 보기]
+        // 인라인 스타일로 강제 숨김
+        rankArea.style.setProperty('display', 'none', 'important');
+        // 가이드 영역 노출 (블록 형태)
+        guideArea.style.setProperty('display', 'block', 'important');
 
-        // 2. 버튼 스타일 변경
-        tabGuideBtn?.classList.add('tab-active');
-        tabGuideBtn?.classList.remove('text-gray-400', 'font-medium');
-        tabRankBtn?.classList.remove('tab-active');
-        tabRankBtn?.classList.add('text-gray-400', 'font-medium');
+        // 버튼 스타일 업데이트
+        btnGuide.className = "flex-1 py-4 text-center text-[13px] md:text-sm tab-active transition-all";
+        btnRank.className = "flex-1 py-4 text-center text-[13px] md:text-sm text-gray-400 font-medium transition-all";
 
-        // 3. 가이드를 볼 때는 랭킹이 돌아갈 필요가 없으므로 타이머 정지
         if (rankingTimeout) {
             clearTimeout(rankingTimeout);
             rankingTimeout = null;
