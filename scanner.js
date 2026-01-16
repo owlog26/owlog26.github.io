@@ -31,7 +31,7 @@ async function initHeroSelect(lang, nameToSelect = "") {
             select.selectedIndex = 0;
         }
     } catch (err) {
-        console.error("Hero list load failed:", err);
+       // console.error("Hero list load failed:", err);
     }
 }
 
