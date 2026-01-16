@@ -34,7 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (urlParams.has('howtoregister')) {
         switchHomeTab('guide');
     }
-
+    // 1. ?ranking 파라미터가 있는 경우
+    else if (urlParams.has('ranking')) {
+        switchTab('ranking');
+        window.scrollTo({ top: 0, behavior: 'smooth' }); // 상단으로 부드럽게 이동
+    }
     // (선택사항) 확장성을 위해 ?tab=guide 형태도 지원하고 싶다면:
     else if (urlParams.get('tab') === 'guide') {
         switchHomeTab('guide');
