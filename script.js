@@ -1140,3 +1140,15 @@ function renderSearchPagination() {
         paginContainer.appendChild(btn);
     }
 }
+
+
+/**
+ * 1. 버튼 클릭 시 숨겨진 파일 인풋 실행
+ */
+function triggerScanner() {
+    const fileInput = document.getElementById('imageInput');
+    if (fileInput) {
+        fileInput.click();
+    }
+}
+
