@@ -253,19 +253,30 @@ async function saveRecord() {
         alert(lang === 'ko' ? "데이터를 먼저 스캔해주세요." : "Please scan data first.");
         return;
     }
+    // 1. 메모리에 저장된 스캔 데이터가 있는지 확인
+    if (!lastScannedData) {
+        alert(lang === 'ko' ? "스캔 데이터가 없습니다." : "No scanned data found.");
+        return;
+    }
 
-    // 3. UI 상태 변경 (중복 클릭 방지)
-    saveBtn.disabled = true;
-    const originalText = saveBtn.innerText;
-    saveBtn.innerText = lang === 'ko' ? "전송 중..." : "SENDING...";
+    // 2. 현재 화면의 점수와 메모리의 점수 비교 (사용자가 소스 수정을 했는지 체크)
+    const domScore = parseInt(document.getElementById('resTotal').innerText.replace(/,/g, '')) || 0;
+    if (domScore !== lastScannedData.totalScore) {
+        alert(lang === 'ko' ? "데이터 조작이 감지되었습니다. 다시 스캔해주세요." : "Data manipulation detected. Please re-scan.");
+        // 조작 감지 시 버튼 비활성화 및 모달 닫기 등 조치 가능
+        return;
+    }
 
+    // ... 닉네임 검증 등 기존 로직 ...
+
+    // [중요] 전송 시에는 DOM 값이 아닌 '메모리에 저장된 값' 사용
     const payload = {
         userId: nickname,
         region: region,
         character: charName,
-        time: `'${document.getElementById('resTime').innerText}`,
-        level: document.getElementById('resLevel').innerText,
-        totalScore: totalScore
+        time: `'${lastScannedData.time}`, // 메모리 값 사용
+        level: lastScannedData.level,     // 메모리 값 사용
+        totalScore: lastScannedData.totalScore // 메모리 값 사용
     };
 
     try {

@@ -31,7 +31,7 @@ async function initHeroSelect(lang, nameToSelect = "") {
             select.selectedIndex = 0;
         }
     } catch (err) {
-       // console.error("Hero list load failed:", err);
+        // console.error("Hero list load failed:", err);
     }
 }
 
@@ -144,7 +144,7 @@ async function runMainScan(img) {
         if (tM) {
             const timeStr = tM[0].replace(/[;.\s]/g, ':').padStart(5, '0'); // MM:SS 추출
             // 앞에 '를 붙여 "문자열"임을 명시 (시트에서 27:45로 정확히 표시됨)
-            res.time = `'${timeStr}`;
+            res.time = `${timeStr}`;
         }
         // B. [레벨] 배율 기호 제외하고 마지막 숫자 '11'만 추출
         const lvNumbers = rawLevel.replace(/[SIl|]/g, '1').match(/\d+/g);
@@ -157,8 +157,16 @@ async function runMainScan(img) {
             if (parseInt(sStr) > 99999) sStr = sStr.slice(-5); // 5자리 제한
             res.total = parseInt(sStr).toLocaleString();
         }
-        // UI 업데이트 (적 처치 필드 제외)// UI 업데이트: 화면에는 보기 편하게 분:초(27:45)만 표시
-        document.getElementById('resTime').innerText = res.time.replace(`'`,'');
+
+        // [추가] 스캔 성공 시 원본 데이터를 변수에 안전하게 보관
+        lastScannedData = {
+            time: res.time,
+            level: res.level,
+            totalScore: parseInt(res.total.replace(/,/g, ''))
+        };
+
+        // UI 업데이트 (화면에 보여주는 용도일 뿐, 저장 시에는 쓰지 않음)
+        document.getElementById('resTime').innerText = res.time;
         document.getElementById('resLevel').innerText = res.level;
         document.getElementById('resTotal').innerText = res.total;
         // 최종 유효성 검사
