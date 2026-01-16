@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OWLOG - 나만의 균열 기록</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #ffffff;
+            color: #1a1a1a;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .tab-active {
+            border-bottom: 2px solid #000;
+            color: #000;
+            font-weight: 700;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* PC 그리드 전환 시 간격 보정 */
+        @media (min-width: 768px) {
+            #content-ranking.grid {
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col pb-20">
+
+    <header class="flex justify-between items-center px-4 py-3 border-b border-gray-100 bg-white sticky top-0 z-50">
+        <button class="w-10 h-10 flex items-center justify-center hover:bg-gray-50 rounded-full transition">
+            <i class="fa-solid fa-bars text-xl"></i>
+        </button>
+        <div class="absolute left-1/2 -translate-x-1/2 text-center">
+            <h1 class="text-xl font-black tracking-tighter cursor-pointer" onclick="switchTab('home')">OWLOG</h1>
+        </div>
+        <div class="flex items-center gap-2 text-xs font-bold text-gray-400">
+            <button onclick="changeLang('en')" id="btn-en" class="transition px-1 uppercase">EN</button>
+            <span class="text-gray-200">|</span>
+            <button onclick="changeLang('ko')" id="btn-ko" class="transition px-1">KO</button>
+        </div>
+    </header>
+
+    <main class="flex-grow flex flex-col px-6 md:px-10 pt-10 max-w-md md:max-w-4xl mx-auto w-full transition-all">
+
+        <div id="section-home">
+            <div class="w-full relative mb-6 md:mb-8">
+                <input type="text" data-i18n-placeholder="placeholder_search"
+                    class="w-full px-5 py-3.5 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl focus:outline-none focus:ring-2 focus:ring-gray-100 transition text-sm md:text-base font-medium">
+                <button class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 hover:text-black">
+                    <i class="fa-solid fa-magnifying-glass md:text-lg"></i>
+                </button>
+            </div>
+
+            <div class="w-full">
+                <div class="flex border-b border-gray-100">
+                    <button onclick="switchHomeTab('ranking')" id="tab-ranking" data-i18n="tab_ranking"
+                        class="flex-1 py-3 md:py-4 text-center text-[13px] md:text-sm tab-active transition-all">
+                    </button>
+                    <button onclick="switchHomeTab('switchHomeTab')" id="tab-guide" data-i18n="tab_guide"
+                        class="flex-1 py-3 md:py-4 text-center text-[13px] md:text-sm text-gray-400 hover:text-gray-600 transition-all font-medium">
+                    </button>
+                </div>
+
+                <div id="content-ranking" class="mt-4 space-y-2 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
+                    <div class="flex flex-col items-center justify-center py-10 opacity-50 md:col-span-2">
+                        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-black mb-2"></div>
+                        <p class="text-[11px] font-bold" data-i18n="msg_loading">Checking Live Ranking...</p>
+                    </div>
+                </div>
+
+                <div id="content-guide" class="mt-6 hidden space-y-6">
+                    <div class="px-2">
+                        <h2 class="text-xl md:text-2xl font-black tracking-tight" data-i18n="guide_title">How to
+                            Register</h2>
+                        <p class="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest"
+                            data-i18n="guide_subtitle">Follow these 3 steps</p>
+                    </div>
+
+                    <div class="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
+                        <div class="p-4 md:p-6 bg-gray-50 rounded-2xl border border-gray-100 flex gap-4">
+                            <span
+                                class="flex-shrink-0 w-6 h-6 bg-black text-white text-[10px] font-black rounded-full flex items-center justify-center">1</span>
+                            <div>
+                                <p class="font-bold text-sm md:text-base" data-i18n="guide_step1_title">결과 화면 캡쳐</p>
+                                <p class="text-xs text-gray-500 mt-1 md:text-sm" data-i18n="guide_step1_desc">게임 종료 후
+                                    나타나는 통계 화면을 전체화면으로 캡쳐하세요.</p>
+                            </div>
+                        </div>
+                        <div class="p-4 md:p-6 bg-gray-50 rounded-2xl border border-gray-100 flex gap-4">
+                            <span
+                                class="flex-shrink-0 w-6 h-6 bg-black text-white text-[10px] font-black rounded-full flex items-center justify-center">2</span>
+                            <div>
+                                <p class="font-bold text-sm md:text-base" data-i18n="guide_step2_title">스캐너 업로드</p>
+                                <p class="text-xs text-gray-500 mt-1 md:text-sm" data-i18n="guide_step2_desc">하단의 '+'
+                                    버튼을 눌러 캡쳐한 이미지를 선택하면 자동으로 데이터가 입력됩니다.</p>
+                            </div>
+                        </div>
+                        <div class="p-4 md:p-6 bg-gray-50 rounded-2xl border border-gray-100 flex gap-4 md:col-span-2">
+                            <span
+                                class="flex-shrink-0 w-6 h-6 bg-black text-white text-[10px] font-black rounded-full flex items-center justify-center">3</span>
+                            <div>
+                                <p class="font-bold text-sm md:text-base" data-i18n="guide_step3_title">기록 저장</p>
+                                <p class="text-xs text-gray-500 mt-1 md:text-sm" data-i18n="guide_step3_desc">닉네임과 국가를
+                                    확인한 후 'Save Record'를 눌러 랭킹에 등록하세요.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-4 md:p-5 rounded-2xl bg-red-50 border border-red-100">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-circle-exclamation text-red-500 text-xs md:text-sm"></i>
+                            <h3 class="font-black text-[11px] md:text-xs text-red-500 uppercase">Attention</h3>
+                        </div>
+                        <p class="text-[11px] md:text-xs text-red-400 leading-relaxed" data-i18n="guide_note">
+                            이미지가 너무 어둡거나 글자가 가려진 경우 인식이 정확하지 않을 수 있습니다. 이 경우 수동으로 수정이 가능합니다.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-12 flex flex-col items-center gap-3 md:gap-5">
+                <p class="text-gray-400 text-[11px] md:text-xs font-medium text-center leading-relaxed"
+                    data-i18n="main_desc"></p>
+                <button onclick="openScanner()" data-i18n="btn_register"
+                    class="bg-black text-white px-10 py-3 md:px-16 md:py-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-bold shadow-md active:scale-95 transition">
+                </button>
+            </div>
+        </div>
+
+        <div id="section-ranking"
+            class="hidden mt-4 py-10 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">
+            Detailed Ranking Section (Pending)
+        </div>
+        <div id="section-guide"
+            class="hidden mt-4 py-10 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">
+            Full Guide Details (Pending)
+        </div>
+
+    </main>
+
+    <nav
+        class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-4 pt-2 pb-3 z-50">
+        <div class="max-w-md md:max-w-4xl mx-auto flex justify-around items-center">
+            <a href="javascript:void(0)" onclick="switchTab('home')" id="nav-home"
+                class="flex flex-col items-center gap-0.5 px-4 text-black transition-colors">
+                <i class="fa-solid fa-house text-lg"></i>
+                <span class="text-[10px] font-bold uppercase tracking-tighter" data-i18n="nav_home">Home</span>
+            </a>
+            <a href="javascript:void(0)" onclick="switchTab('ranking')" id="nav-rank"
+                class="flex flex-col items-center gap-0.5 px-4 text-gray-300 transition-colors">
+                <i class="fa-solid fa-trophy text-lg"></i>
+                <span class="text-[10px] font-bold uppercase tracking-tighter" data-i18n="nav_rank">Rank</span>
+            </a>
+            <a href="javascript:void(0)" onclick="switchTab('guide')" id="nav-guide"
+                class="flex flex-col items-center gap-0.5 px-4 text-gray-300 transition-colors">
+                <i class="fa-solid fa-book text-lg"></i>
+                <span class="text-[10px] font-bold uppercase tracking-tighter" data-i18n="nav_guide">Guide</span>
+            </a>
+        </div>
+    </nav>
+
+    <div id="scannerModal" class="fixed inset-0 bg-white z-[100] hidden overflow-y-auto no-scrollbar">
+        <header class="flex justify-between items-center px-4 py-3 border-b border-gray-100 bg-white sticky top-0">
+            <button onclick="closeScanner()"
+                class="w-10 h-10 flex items-center justify-center hover:bg-gray-50 rounded-full transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h1 class="text-lg font-black tracking-tighter uppercase" data-i18n="scanner_title">DATA SCANNER</h1>
+            <div class="w-10"></div>
+        </header>
+
+        <main class="px-6 pt-6 md:pt-10 max-w-md md:max-w-2xl mx-auto w-full pb-20">
+            <section class="text-center mb-6">
+                <label for="imageInput"
+                    class="cursor-pointer inline-flex flex-row items-center justify-center gap-3 w-full p-4 md:p-8 border-2 border-dashed border-gray-200 rounded-2xl hover:bg-gray-50 transition">
+                    <i class="fa-solid fa-camera text-xl md:text-3xl text-gray-300"></i>
+                    <span class="text-sm md:text-base font-bold text-gray-500" data-i18n="scanner_upload">Select
+                        Screenshot</span>
+                    <input type="file" id="imageInput" accept="image/*" class="hidden">
+                </label>
+                <p id="status" class="mt-3 text-[10px] md:text-xs font-bold text-blue-500 tracking-tight uppercase"
+                    data-i18n="scanner_ready">Ready</p>
+            </section>
+
+            <section class="bg-gray-50 p-5 md:p-8 rounded-3xl mb-6 shadow-inner">
+                <h3 class="text-[10px] md:text-xs font-black text-gray-400 mb-4 tracking-widest uppercase">User & Match
+                    Info</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center text-sm md:text-base">
+                        <span class="font-bold text-gray-400" data-i18n="label_userid">User ID</span>
+                        <input type="text" id="userNickname" data-i18n-placeholder="placeholder_nickname"
+                            class="w-40 md:w-60 bg-white px-3 py-2 rounded-xl border-none shadow-sm font-bold focus:ring-2 focus:ring-gray-200 outline-none text-right text-xs md:text-sm">
+                    </div>
+                    <div class="flex justify-between items-center text-sm md:text-base">
+                        <span class="font-bold text-gray-400" data-i18n="label_region">Region</span>
+                        <select id="userRegion"
+                            class="bg-white px-3 py-2 rounded-xl border-none shadow-sm text-right font-bold text-xs md:text-sm text-gray-800 outline-none cursor-pointer min-w-[100px]"></select>
+                    </div>
+                    <hr class="border-gray-200 my-2">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="font-bold text-gray-500" data-i18n="label_char">Character</span>
+                        <select id="resName"
+                            class="font-bold px-2 py-1 bg-white rounded-lg shadow-sm border-none text-xs text-right cursor-pointer min-w-[80px]"></select>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="font-bold text-gray-500" data-i18n="label_time">Time</span>
+                        <span id="resTime" class="font-bold px-3 py-1 bg-white rounded-lg shadow-sm text-xs">-</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="font-bold text-gray-500" data-i18n="label_enemies">Enemies</span>
+                        <span id="resEnemies" class="font-bold px-3 py-1 bg-white rounded-lg shadow-sm text-xs">-</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="font-bold text-gray-500" data-i18n="label_level">Anguish</span>
+                        <span id="resLevel"
+                            class="font-bold px-3 py-1 bg-white rounded-lg shadow-sm text-red-500 text-xs">-</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-4 border-t border-gray-200">
+                        <span class="font-black text-gray-900 md:text-lg" data-i18n="label_score">Total Score</span>
+                        <span id="resTotal" class="text-lg md:text-2xl font-black text-black">0</span>
+                    </div>
+                </div>
+            </section>
+
+            <button id="saveBtn" onclick="saveRecord()" disabled data-i18n="btn_save"
+                class="w-full bg-black text-white py-4 md:py-5 rounded-2xl font-black text-sm md:text-base shadow-xl active:scale-95 transition disabled:bg-gray-300 disabled:cursor-not-allowed">
+                Save Record
+            </button>
+
+            <div class="mt-8 opacity-0 pointer-events-none h-0">
+                <canvas id="previewCanvas"></canvas>
+                <canvas id="nameDebugCanvas"></canvas>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="scanner.js"></script>
+</body>
+
+</html>
