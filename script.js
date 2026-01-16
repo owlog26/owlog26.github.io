@@ -255,7 +255,7 @@ async function saveRecord() {
         closeScanner();
 
     } catch (error) {
-       / console.error("Save Error:", error);
+       // console.error("Save Error:", error);
         //alert(lang === 'ko' ? "서버 통신 에러가 발생했습니다." : "Server error occurred.");
     } finally {
         saveBtn.disabled = false;
