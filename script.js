@@ -967,31 +967,33 @@ const searchItemsPerPage = 10;
  * 1. 검색 탭 전환 로직 수정
  */
 function switchSearchTab(type) {
-    const recCont = document.getElementById('search-content-records');
+    // 요소를 먼저 정의합니다.
+    const recView = document.getElementById('search-records-view'); // 기록+페이징 그룹
     const sumCont = document.getElementById('search-content-summary');
-    const paginCont = document.getElementById('search-pagination'); // 페이징 컨테이너
     const recBtn = document.getElementById('search-tab-records');
     const sumBtn = document.getElementById('search-tab-summary');
     const lang = localStorage.getItem('owlog_lang') || 'en';
 
-    if (!recCont || !sumCont || !paginCont) return;
+    // 요소가 모두 존재하는지 확인
+    if (!recView || !sumCont || !recBtn || !sumBtn) return;
 
     if (type === 'records') {
-        recCont.classList.remove('hidden');
-        paginCont.classList.remove('hidden'); // 페이징 표시
+        // [기록 탭 활성화]
+        recView.classList.remove('hidden'); 
         sumCont.classList.add('hidden');
 
+        // 버튼 활성화 스타일 적용
         recBtn.className = "flex-1 py-4 text-center text-[13px] md:text-sm tab-active transition-all";
         sumBtn.className = "flex-1 py-4 text-center text-[13px] md:text-sm text-gray-400 font-medium transition-all";
 
-        // 페이지 초기화 및 렌더링
         searchCurrentPage = 1;
         renderSearchRecordsPage();
     } else {
+        // [요약 탭 활성화]
         sumCont.classList.remove('hidden');
-        recCont.classList.add('hidden');
-        paginCont.classList.add('hidden'); // 요약 탭에서는 페이징 숨김
+        recView.classList.add('hidden'); // 그룹 전체를 숨겨 md:grid 충돌 방지
 
+        // 버튼 활성화 스타일 적용
         sumBtn.className = "flex-1 py-4 text-center text-[13px] md:text-sm tab-active transition-all";
         recBtn.className = "flex-1 py-4 text-center text-[13px] md:text-sm text-gray-400 font-medium transition-all";
 
@@ -1009,28 +1011,47 @@ function renderSearchContent(records) {
 /**
  * 캐릭터 요약 통계 출력 (다국어 라벨 적용)
  */
+/**
+ * 캐릭터 요약 통계 출력 (한/영 이름 통합 처리)
+ */
 function renderSummaryStats(container, lang) {
+    
     const stats = {};
+    
+    // [핵심] 캐릭터 이름 통합 계산
     searchUserRecordsRef.forEach(item => {
-        if (!stats[item.character]) stats[item.character] = { count: 0, max: 0, total: 0 };
+        // hero.json에서 해당 이름(한글 또는 영어)을 가진 캐릭터 정보를 찾습니다.
+        const heroInfo = heroDataCache.characters.find(c => 
+            c.english_name === item.character || c.korean_name === item.character
+        );
+        
+        // heroInfo가 있으면 english_name을 키로 사용하고, 없으면 기록된 이름을 그대로 사용합니다.
+        const charKey = heroInfo ? heroInfo.english_name : item.character;
+
+        if (!stats[charKey]) {
+            stats[charKey] = { count: 0, max: 0, total: 0, info: heroInfo };
+        }
+        
         const score = Number(item.totalScore);
-        stats[item.character].count++;
-        stats[item.character].total += score;
-        if (score > stats[item.character].max) stats[item.character].max = score;
+        stats[charKey].count++;
+        stats[charKey].total += score;
+        if (score > stats[charKey].max) stats[charKey].max = score;
     });
 
     container.innerHTML = '';
 
-    // idle.json에서 라벨 가져오기 (기본값 설정)
     const labelGames = lang === 'ko' ? '판 플레이' : 'GAMES';
     const labelBest = translations[lang]['label_best'] || 'Best';
     const labelAvg = translations[lang]['label_avg'] || 'Average';
 
-    Object.keys(stats).forEach(charName => {
-        const s = stats[charName];
-        const heroInfo = heroDataCache.characters.find(c => c.english_name === charName || c.korean_name === charName);
-        const displayName = heroInfo ? (lang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : charName;
-        const fileName = (heroInfo ? heroInfo.english_name : charName).replace(/\s+/g, '_');
+    // 합산된 데이터를 화면에 출력
+    Object.keys(stats).forEach(charKey => {
+        const s = stats[charKey];
+        const heroInfo = s.info;
+        
+        // 현재 설정된 언어(lang)에 맞춰 표시 이름을 결정합니다.
+        const displayName = heroInfo ? (lang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : charKey;
+        const fileName = charKey.replace(/\s+/g, '_');
 
         const row = document.createElement('div');
         row.className = "bg-gray-50 p-5 rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm";
