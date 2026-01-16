@@ -152,6 +152,7 @@ async function runMainScan(img) {
 
         // C. [합계] 마지막 숫자 뭉치에서 뒤의 5자리만 취함
         const totalNums = rawTotal.match(/\d+/g);
+        
         if (totalNums) {
             let sStr = totalNums[totalNums.length - 1];
             if (parseInt(sStr) > 99999) sStr = sStr.slice(-5); // 5자리 제한

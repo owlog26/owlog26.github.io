@@ -548,12 +548,12 @@ async function loadRanking() {
                 return levelB - levelA;
             }
 
-            // 2순위: 합계 점수 (내림차순 - 점수가 높을수록 위로)
+          /*  // 2순위: 합계 점수 (내림차순 - 점수가 높을수록 위로)
             const scoreA = Number(a.totalScore) || 0;
             const scoreB = Number(b.totalScore) || 0;
             if (scoreB !== scoreA) {
                 return scoreB - scoreA;
-            }
+            }*/
 
             // 3순위: 시간 (오름차순 - 시간이 짧을수록 위로)
             // '00:27:45' 형식끼리 비교하므로 localeCompare가 정확합니다.
