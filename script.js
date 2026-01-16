@@ -29,8 +29,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('id');
 
-    if (userId) {
-        handleDirectJump(userId);
+    // 2. '?howtoregister' 또는 '?tab=guide' 파라미터가 있는지 확인
+    // 사용자가 owlog.zyx/?howtoregister 로 접속했을 때
+    if (urlParams.has('howtoregister')) {
+        switchHomeTab('guide');
+    }
+
+    // (선택사항) 확장성을 위해 ?tab=guide 형태도 지원하고 싶다면:
+    else if (urlParams.get('tab') === 'guide') {
+        switchHomeTab('guide');
     }
 });
 
@@ -326,7 +333,7 @@ function switchHomeTab(tab) {
     if (tab === 'ranking') {
         // [랭킹 보기]
         // 인라인 스타일로 강제 노출 (기존 grid 레이아웃 유지)
-        rankArea.style.setProperty('display', 'grid', 'important'); 
+        rankArea.style.setProperty('display', 'grid', 'important');
         guideArea.style.setProperty('display', 'none', 'important');
 
         // 버튼 스타일 업데이트
@@ -334,7 +341,7 @@ function switchHomeTab(tab) {
         btnGuide.className = "flex-1 py-4 text-center text-[13px] md:text-sm text-gray-400 font-medium transition-all";
 
         if (typeof startRankingTimer === 'function') startRankingTimer();
-    } 
+    }
     else if (tab === 'guide') {
         // [가이드 보기]
         // 인라인 스타일로 강제 숨김
