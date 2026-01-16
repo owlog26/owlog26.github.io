@@ -31,7 +31,7 @@ async function initHeroSelect(lang, nameToSelect = "") {
             select.selectedIndex = 0;
         }
     } catch (err) {
-       // console.error("Hero list load failed:", err);
+        // console.error("Hero list load failed:", err);
     }
 }
 
@@ -158,7 +158,7 @@ async function runMainScan(img) {
             res.total = parseInt(sStr).toLocaleString();
         }
         // UI 업데이트 (적 처치 필드 제외)// UI 업데이트: 화면에는 보기 편하게 분:초(27:45)만 표시
-        document.getElementById('resTime').innerText = res.time.replace(`'`,'');
+        document.getElementById('resTime').innerText = res.time.replace(`'`, '');
         document.getElementById('resLevel').innerText = res.level;
         document.getElementById('resTotal').innerText = res.total;
         // 최종 유효성 검사
@@ -166,9 +166,15 @@ async function runMainScan(img) {
             saveBtn.disabled = false;
             statusText.innerText = (currentLang === 'ko') ? "분석 완료" : "COMPLETE";
             statusText.classList.replace('text-blue-500', 'text-green-500');
-        } else {
+        } else if (totalNum <= 10000) {
+            saveBtn.disabled = true;
+            statusText.innerText = (currentLang === 'ko') ? "10,000점 이하 등록 불가" : "SCORE TOO LOW (<10,000)";
+        }
+        else {
             statusText.classList.replace('text-blue-500', 'text-red-500');
             statusText.innerText = (currentLang === 'ko') ? "인식 실패" : "SCAN FAILED";
+            // 점수 미달인 경우 별도 메시지 출력
+
         }
 
     } catch (err) {

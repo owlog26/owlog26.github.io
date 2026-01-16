@@ -212,7 +212,14 @@ async function saveRecord() {
     const region = document.getElementById('userRegion').value;
     const charName = document.getElementById('resName').value;
     const totalScore = document.getElementById('resTotal').innerText.replace(/,/g, '');
-
+    // [추가] 10,000점 이하 차단 로직
+    if (totalScoreNum <= 10000) {
+        const errorMsg = lang === 'ko'
+            ? "10,000점 이하의 기록은 등록할 수 없습니다."
+            : "Scores 10,000 or less cannot be registered.";
+        alert(errorMsg);
+        return;
+    }
     // 1. 닉네임 보안 검증 실행
     const validation = validateNickname(nickname);
     if (!validation.ok) {
@@ -255,7 +262,7 @@ async function saveRecord() {
         closeScanner();
 
     } catch (error) {
-       // console.error("Save Error:", error);
+        // console.error("Save Error:", error);
         //alert(lang === 'ko' ? "서버 통신 에러가 발생했습니다." : "Server error occurred.");
     } finally {
         saveBtn.disabled = false;
