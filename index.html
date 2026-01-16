@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OwLog</title>
+    <title>OWLOG</title>
     <link rel="icon" type="image/png" href="./fav/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="./fav/favicon.svg" />
     <link rel="shortcut icon" href="./fav/favicon.ico" />
@@ -55,9 +55,15 @@
         <button class="w-10 h-10 flex items-center justify-center hover:bg-gray-50 rounded-full transition">
             <i class="fa-solid fa-bars text-xl"></i>
         </button>
-        <div class="absolute left-1/2 -translate-x-1/2 text-center">
-            <h1 class="text-xl font-black tracking-tighter cursor-pointer" onclick="switchTab('home')">OWLOG</h1>
-        </div>
+        <div class="flex items-center gap-1.5 cursor-pointer" onclick="switchTab('home')">
+    <h1 class="text-2xl md:text-3xl font-black tracking-tighter text-black">
+        OWLOG
+    </h1>
+    
+    <span class="bg-red-500 text-white text-[9px] md:text-[10px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tighter leading-none mb-1 md:mb-2">
+        Beta
+    </span>
+</div>
         <div class="flex items-center gap-2 text-xs font-bold text-gray-400">
             <button onclick="changeLang('en')" id="btn-en" class="transition px-1 uppercase">EN</button>
             <span class="text-gray-200">|</span>
