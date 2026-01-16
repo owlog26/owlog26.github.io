@@ -910,11 +910,14 @@ function renderSearchSummary() {
     });
 }
 
+/**
+ * [script.js] performUserSearch 함수 내부 수정
+ */
 function performUserSearch(query) {
     if (!query) return;
     const lang = localStorage.getItem('owlog_lang') || 'en';
 
-    // 데이터 필터링 (대소문자 구분 없음)
+    // 1. 유저 데이터 필터링
     const userRecords = rankingDataCache.filter(item =>
         item.userId.toLowerCase() === query.toLowerCase()
     );
@@ -924,40 +927,45 @@ function performUserSearch(query) {
         return;
     }
 
-    // [핵심] 데이터 바인딩 전 로딩 뷰 숨기고 결과 뷰 보여주기
+    // [핵심 로직 추가] 최고 기록 계산: 레벨(내림차순) -> 시간(오름차순)
+    const topRecord = [...userRecords].sort((a, b) => {
+        // A. 레벨 숫자 추출 및 비교
+        const lvA = parseInt(String(a.level || 0).replace(/[^0-9]/g, '')) || 0;
+        const lvB = parseInt(String(b.level || 0).replace(/[^0-9]/g, '')) || 0;
+        if (lvB !== lvA) return lvB - lvA; // 레벨이 높은 순서 우선
+
+        // B. 레벨이 같다면 시간 비교
+        return String(a.time || "").localeCompare(String(b.time || "")); // 시간이 짧은 순서 우선
+    })[0]; // 정렬된 결과 중 첫 번째가 최고 기록
+
+    // 2. 검색 결과 뷰 활성화 및 데이터 바인딩
     document.getElementById('search-loading-view').classList.add('hidden');
     document.getElementById('search-results-view').classList.remove('hidden');
-
-    // 전역 참조 변수에 데이터 저장 (정렬되지 않은 원본 순서 유지)
     searchUserRecordsRef = [...userRecords];
-
-    // 섹션 전환
     switchTab('search');
 
-    // 가장 많이 사용한 캐릭터 계산
+    // 3. 프로필 UI 업데이트 (기존 ID 'search-last-update' 자리에 최고 기록 표시)
+    document.getElementById('search-user-id').innerText = query;
+    document.getElementById('search-user-region').innerText = topRecord.region;
+    document.getElementById('search-total-play').innerText = userRecords.length;
+    
+    // [변경] 기존 label(Last) 아래에 최고 기록(Lv.XX | 00:00)을 출력
+    document.getElementById('search-last-update').innerText = `${topRecord.time}`;
+
+    // 4. 대표 캐릭터 이미지 업데이트 (가장 많이 플레이한 캐릭터 기준 유지)
     const charCounts = {};
     userRecords.forEach(r => charCounts[r.character] = (charCounts[r.character] || 0) + 1);
     const mostPlayedChar = Object.keys(charCounts).reduce((a, b) => charCounts[a] > charCounts[b] ? a : b);
     const heroInfo = heroDataCache.characters.find(c => c.english_name === mostPlayedChar || c.korean_name === mostPlayedChar);
     const fileName = heroInfo ? heroInfo.english_name.replace(/\s+/g, '_') : 'Hero';
 
-    // 최신 시간 (G열) 가져오기
-    const latestRecord = userRecords[userRecords.length - 1];
-
-    // 프로필 UI 업데이트
-    document.getElementById('search-user-id').innerText = query;
-    document.getElementById('search-user-region').innerText = latestRecord.region;
-    document.getElementById('search-total-play').innerText = userRecords.length;
-    document.getElementById('search-last-update').innerText = latestRecord.time; // 시트의 실제 시간
-
     document.getElementById('search-user-flag').innerHTML = `
-        <img src="https://flagcdn.com/w40/${latestRecord.region.toLowerCase()}.png" class="w-full h-full object-cover">
+        <img src="https://flagcdn.com/w40/${topRecord.region.toLowerCase()}.png" class="w-full h-full object-cover">
     `;
     document.getElementById('search-profile-img').innerHTML = `
         <img src="./heroes/${fileName}.webp" class="w-full h-full object-cover" style="transform: scale(1.4); object-position: center 10%;">
     `;
 
-    // 기본 탭인 '기록' 표시 실행
     switchSearchTab('records');
 }
 let searchCurrentPage = 1;
@@ -979,7 +987,7 @@ function switchSearchTab(type) {
 
     if (type === 'records') {
         // [기록 탭 활성화]
-        recView.classList.remove('hidden'); 
+        recView.classList.remove('hidden');
         sumCont.classList.add('hidden');
 
         // 버튼 활성화 스타일 적용
@@ -1015,23 +1023,23 @@ function renderSearchContent(records) {
  * 캐릭터 요약 통계 출력 (한/영 이름 통합 처리)
  */
 function renderSummaryStats(container, lang) {
-    
+
     const stats = {};
-    
+
     // [핵심] 캐릭터 이름 통합 계산
     searchUserRecordsRef.forEach(item => {
         // hero.json에서 해당 이름(한글 또는 영어)을 가진 캐릭터 정보를 찾습니다.
-        const heroInfo = heroDataCache.characters.find(c => 
+        const heroInfo = heroDataCache.characters.find(c =>
             c.english_name === item.character || c.korean_name === item.character
         );
-        
+
         // heroInfo가 있으면 english_name을 키로 사용하고, 없으면 기록된 이름을 그대로 사용합니다.
         const charKey = heroInfo ? heroInfo.english_name : item.character;
 
         if (!stats[charKey]) {
             stats[charKey] = { count: 0, max: 0, total: 0, info: heroInfo };
         }
-        
+
         const score = Number(item.totalScore);
         stats[charKey].count++;
         stats[charKey].total += score;
@@ -1048,7 +1056,7 @@ function renderSummaryStats(container, lang) {
     Object.keys(stats).forEach(charKey => {
         const s = stats[charKey];
         const heroInfo = s.info;
-        
+
         // 현재 설정된 언어(lang)에 맞춰 표시 이름을 결정합니다.
         const displayName = heroInfo ? (lang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : charKey;
         const fileName = charKey.replace(/\s+/g, '_');
