@@ -344,13 +344,32 @@ function renderRankingSlide() {
             c.english_name === item.character || c.korean_name === item.character
         );
 
+        const regionCode = item.region.toLowerCase(); // 국가 코드를 소문자로 변환
+        const flagUrl = `https://flagcdn.com/w40/${regionCode}.png`; // 40px 너비의 국기 이미지 URL
+
         let englishName = heroInfo ? heroInfo.english_name : item.character;
         let fileName = englishName.replace(/\s+/g, '_');
         const imgPath = `./heroes/${fileName}.webp`;
         const displayName = heroInfo ? (lang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : item.character;
 
-        let objectPosition = "center 20%";
+        let objectPosition = "center 10%";
+        let imageScale = "scale(1.3)"; // 기본 크기 (1배)
+
         if (englishName === "Alessia") objectPosition = "center 40%";
+        if (englishName === "Yoiko") {
+            objectPosition = "center 10%"; // 세로 위치만 고정
+            imageScale = "scale(1.8) translateX(-5px)";
+        } else if (englishName === "Alasdair") {
+            objectPosition = "center 20%"; // 세로 위치만 고정
+            imageScale = "scale(1.3)";
+        } else if (englishName === "Ginzo") {
+            objectPosition = "center 30%"; // 세로 위치만 고정
+            imageScale = "scale(1.3)";
+        }else if (englishName === "Akaisha") {
+            objectPosition = "center 20%"; // 세로 위치만 고정
+            imageScale = "scale(1.3)";
+        }
+
 
         const card = document.createElement('div');
         // md:p-4 이상으로 PC에서 카드 크기도 살짝 키움
@@ -361,12 +380,18 @@ function renderRankingSlide() {
                 <span class="font-black ${rank <= 3 ? 'text-yellow-500' : 'text-gray-300'} w-4 text-center italic text-xs md:text-sm">${rank}</span>
                 <div class="w-12 h-5 md:w-16 md:h-7 rounded bg-gray-200 border border-gray-200 overflow-hidden flex-shrink-0 relative">
                     <img src="${imgPath}" onerror="this.src='https://via.placeholder.com/48x20?text=Hero'" 
-                             class="w-full h-full object-cover" style="object-position: ${objectPosition};">
+                             class="w-full h-full object-cover transition-transform" 
+                 style="object-position: ${objectPosition}; transform: ${imageScale};">
                     <span class="absolute right-0 bottom-0 bg-red-500 text-[6px] md:text-[8px] text-white px-0.5 font-bold">Lv.${item.level}</span>
                 </div>
                 <div class="flex flex-col">
                     <div class="flex items-center gap-1.5">
-                        <span class="text-[9px] md:text-[10px] font-black text-blue-500 uppercase">${item.region}</span>
+                    <div class="w-5 h-3.5 md:w-6 md:h-4 overflow-hidden rounded-[2px] shadow-[0_0_2px_rgba(0,0,0,0.1)] border border-gray-100 flex-shrink-0 bg-gray-50">
+            <img src="${flagUrl}" 
+                 onerror="this.src='https://via.placeholder.com/20x14?text=?'" 
+                 class="w-full h-full object-cover shadow-inner" 
+                 title="${item.region}">
+        </div>
                         <span class="font-bold text-sm md:text-base leading-none text-gray-800">${item.userId}</span>
                     </div>
                     <span class="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mt-0.5">${displayName}</span>
@@ -408,7 +433,7 @@ function startRankingRotation() {
     renderRankingSlide(); // 첫 실행 (이 안에서 setTimeout으로 다음 루프가 예약됨)
 }
 /**
- * OWLOG - 실시간 랭킹 로드 (전체 데이터를 가져와서 캐싱)
+ * OWLOG - 실시간 랭킹 로드 (정렬 로직 포함)
  */
 async function loadRanking() {
     const container = document.getElementById('content-ranking');
@@ -420,15 +445,29 @@ async function loadRanking() {
             fetch('json/hero.json')
         ]);
 
-        rankingDataCache = await rankingRes.json();
+        let rawData = await rankingRes.json();
         heroDataCache = await heroRes.json();
 
-        if (!rankingDataCache || rankingDataCache.length === 0) {
+        if (!rawData || rawData.length === 0) {
             container.innerHTML = `<p class="text-center py-10 text-gray-400 text-xs">No records found.</p>`;
             return;
         }
 
-        startRankingRotation(); // 로드 완료 후 순환 시작
+        // [핵심] 정렬 로직 적용
+        rankingDataCache = rawData.sort((a, b) => {
+            const scoreA = Number(a.totalScore);
+            const scoreB = Number(b.totalScore);
+
+            // 1. 점수가 다르다면 점수 높은 순(내림차순)
+            if (scoreB !== scoreA) {
+                return scoreB - scoreA;
+            }
+            // 2. 점수가 같다면 시간이 짧은 순(오름차순)
+            // "02:45".localeCompare("03:10") -> "02:45"가 앞으로 옴
+            return a.time.localeCompare(b.time);
+        });
+
+        startRankingRotation();
     } catch (error) {
         console.error("Ranking Load Error:", error);
     }
