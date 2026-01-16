@@ -162,8 +162,14 @@
                                 class="flex-shrink-0 w-6 h-6 bg-black text-white text-[10px] font-black rounded-full flex items-center justify-center">2</span>
                             <div>
                                 <p class="font-bold text-sm md:text-base" data-i18n="guide_step2_title">스캐너 업로드</p>
-                                <p class="text-xs text-gray-500 mt-1 md:text-sm" data-i18n="guide_step2_desc">하단의 '+'
-                                    버튼을 눌러 캡쳐한 이미지를 선택하면 자동으로 데이터가 입력됩니다.</p>
+                                <p class="text-xs text-gray-500 mt-1 md:text-sm" data-i18n="guide_step2_desc">
+                                    하단의 '+' 버튼을 눌러 캡쳐한 이미지를 선택하면 자동으로 데이터가 입력됩니다.
+                                </p>
+
+                                <div
+                                    class="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+                                    <img src="images/r_ex.png" alt="Crop Guide" class="w-full h-auto rounded-lg">
+                                </div>
                             </div>
                         </div>
                         <div class="p-4 md:p-6 bg-gray-50 rounded-2xl border border-gray-100 flex gap-4 md:col-span-2">
@@ -395,10 +401,6 @@
                         <span id="resTime" class="font-bold px-3 py-1 bg-white rounded-lg shadow-sm text-xs">-</span>
                     </div>
                     <div class="flex justify-between items-center text-sm">
-                        <span class="font-bold text-gray-500" data-i18n="label_enemies">Enemies</span>
-                        <span id="resEnemies" class="font-bold px-3 py-1 bg-white rounded-lg shadow-sm text-xs">-</span>
-                    </div>
-                    <div class="flex justify-between items-center text-sm">
                         <span class="font-bold text-gray-500" data-i18n="label_level">Anguish</span>
                         <span id="resLevel"
                             class="font-bold px-3 py-1 bg-white rounded-lg shadow-sm text-red-500 text-xs">-</span>
@@ -409,7 +411,7 @@
                     </div>
                 </div>
             </section>
-            
+
             <button id="saveBtn" onclick="saveRecord()" disabled data-i18n="btn_save"
                 class="w-full bg-black text-white py-4 md:py-5 rounded-2xl font-black text-sm md:text-base shadow-xl active:scale-95 transition disabled:bg-gray-300 disabled:cursor-not-allowed">
                 Save Record
@@ -421,33 +423,39 @@
             </div>
         </main>
     </div>
-   <div id="cropModal"
-    class="hidden fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center p-4 md:p-6 transition-all duration-300">
-    <div class="w-full max-w-2xl bg-white rounded-[32px] overflow-hidden shadow-2xl flex flex-col ring-1 ring-black/5 relative">
+    <div id="cropModal"
+        class="hidden fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center p-4">
+        <div
+            class="w-full max-w-xl bg-white rounded-[32px] overflow-hidden shadow-2xl flex flex-col ring-1 ring-black/5">
 
-        <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white/90 backdrop-blur-md z-10">
-            <div>
-                <h3 class="font-black uppercase tracking-tighter text-lg md:text-xl text-gray-900">Crop Image</h3>
-                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Select data area</p>
+            <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white">
+                <div>
+                    <h3 class="font-black uppercase tracking-tighter text-lg text-slate-900">Crop Image</h3>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Select data area</p>
+                </div>
+                <button onclick="closeCropModal()"
+                    class="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-black transition-all">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
-            <button onclick="closeCropModal()"
-                class="w-9 h-9 rounded-full bg-gray-50/80 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-all group">
-                <i class="fa-solid fa-xmark group-hover:scale-110 transition-transform"></i>
-            </button>
-        </div>
 
-        <div class="relative flex-1 bg-gray-50 min-h-[300px] max-h-[60vh] overflow-hidden z-0">
-            <img id="cropTarget" src="" class="max-w-full block">
-        </div>
+            <div class="relative flex-1 bg-slate-50 min-h-[300px] max-h-[60vh] overflow-hidden">
+                <img id="cropTarget" src="" class="max-w-full block">
+            </div>
 
-        <div class="px-6 py-4 bg-white/90 backdrop-blur-md border-t border-gray-100 flex gap-3 z-10">
-            <button onclick="confirmCrop()"
-                class="flex-1 py-3 bg-gray-900 hover:bg-black text-white rounded-2xl font-bold text-[13px] uppercase tracking-widest active:scale-95 transition-all shadow-md hover:shadow-lg">
-                Scan Selected Area
-            </button>
+            <div class="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex gap-3">
+                <button onclick="confirmCrop()"
+                    class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-[13px] uppercase tracking-widest active:scale-95 transition-all shadow-md shadow-blue-100">
+                    Scan Selected Area
+                </button>
+            </div>
         </div>
     </div>
-</div>
+
+    <div id="debug-panel" class="hidden mt-8 p-4 bg-slate-900 rounded-2xl text-[10px] text-green-400 font-mono">
+        <canvas id="nameDebugCanvas" class="hidden"></canvas>
+        <pre id="debug-raw-text"></pre>
+    </div>
     <script src="script.js"></script>
     <script src="scanner.js"></script>
 </body>

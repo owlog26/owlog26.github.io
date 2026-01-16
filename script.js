@@ -223,7 +223,7 @@ async function saveRecord() {
         userId: nickname,
         region: region,
         character: charName,
-        time: document.getElementById('resTime').innerText,
+        time: `'${document.getElementById('resTime').innerText}`,
         level: document.getElementById('resLevel').innerText,
         totalScore: totalScore
     };
@@ -497,9 +497,8 @@ function startRankingRotation() {
     if (rankingTimeout) clearTimeout(rankingTimeout);
     currentRankingPage = 0;
     renderRankingSlide(); // 첫 실행 (이 안에서 setTimeout으로 다음 루프가 예약됨)
-}
-/**
- * OWLOG - 실시간 랭킹 로드 (정렬 로직 포함)
+}/**
+ * OWLOG - 실시간 랭킹 로드 (레벨 -> 점수 -> 시간 순 정렬)
  */
 async function loadRanking() {
     const container = document.getElementById('content-ranking');
@@ -519,20 +518,28 @@ async function loadRanking() {
             return;
         }
 
-        // [핵심] 정렬 로직 적용
+        // [핵심 수정] 다중 정렬 로직 적용
         rankingDataCache = rawData.sort((a, b) => {
-            const scoreA = Number(a.totalScore);
-            const scoreB = Number(b.totalScore);
+            // 1순위: 고통 레벨 (내림차순 - 숫자가 클수록 위로)
+            const levelA = Number(a.level) || 0;
+            const levelB = Number(b.level) || 0;
+            if (levelB !== levelA) {
+                return levelB - levelA;
+            }
 
-            // 1. 점수가 다르다면 점수 높은 순(내림차순)
+            // 2순위: 합계 점수 (내림차순 - 점수가 높을수록 위로)
+            const scoreA = Number(a.totalScore) || 0;
+            const scoreB = Number(b.totalScore) || 0;
             if (scoreB !== scoreA) {
                 return scoreB - scoreA;
             }
-            // 2. 점수가 같다면 시간이 짧은 순(오름차순)
-            // "02:45".localeCompare("03:10") -> "02:45"가 앞으로 옴
+
+            // 3순위: 시간 (오름차순 - 시간이 짧을수록 위로)
+            // '00:27:45' 형식끼리 비교하므로 localeCompare가 정확합니다.
             return a.time.localeCompare(b.time);
         });
 
+        // 정렬된 데이터로 로테이션 시작
         startRankingRotation();
     } catch (error) {
         console.error("Ranking Load Error:", error);

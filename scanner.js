@@ -13,9 +13,9 @@ async function initHeroSelect(lang, nameToSelect = "") {
         const response = await fetch('json/hero.json');
         const data = await response.json();
         allCharacterData = data.characters;
-        
+
         const select = document.getElementById('resName');
-        select.innerHTML = ''; 
+        select.innerHTML = '';
 
         allCharacterData.forEach(char => {
             const option = document.createElement('option');
@@ -36,11 +36,11 @@ async function initHeroSelect(lang, nameToSelect = "") {
 }
 
 /**
- * 2. 캐릭터 이름 정밀 인식 및 '완전 일치' 우선 매칭
+ * 2. 캐릭터 이름 정밀 인식 (특수문자 제거 및 비교)
  */
 async function checkCharacterName(img, worker, lang) {
     const isCropped = (img.width / img.height) < 1.3;
-    
+
     // [좌표] dds.png 빨간 박스 위치
     let nx = img.width * 0.13, ny = img.height * 0.015;
     let nw = img.width * 0.35, nh = img.height * 0.11;
@@ -49,22 +49,21 @@ async function checkCharacterName(img, worker, lang) {
 
     const nCanvas = document.createElement('canvas');
     const nCtx = nCanvas.getContext('2d');
-    nCanvas.width = nw * 5; 
+    nCanvas.width = nw * 5;
     nCanvas.height = nh * 5;
 
-    // 이름 영역 전처리 (기호 제거를 위해 대비 강화)
     nCtx.filter = 'grayscale(1) contrast(3.5) brightness(1.2)';
     nCtx.drawImage(img, nx, ny, nw, nh, 0, 0, nCanvas.width, nCanvas.height);
 
     const { data } = await worker.recognize(nCanvas);
-    
-    // 기호(/) 제거 및 영문/한글만 추출
+
+    // [보정] 기호(/) 등을 제거하고 순수 언어 텍스트만 추출
     const detectedRaw = data.text.trim();
-    const detectedClean = detectedRaw.replace(/[^가-힣a-zA-Z]/g, '').trim(); 
+    const detectedClean = detectedRaw.replace(/[^가-힣a-zA-Z]/g, '').trim();
 
     const heroList = allCharacterData.map(c => (lang === 'ko' ? c.korean_name : c.english_name));
-    
-    // 1순위: 완전 일치 혹은 포함 관계 확인
+
+    // 1순위: 포함 관계 혹은 완전 일치 확인
     for (let heroName of heroList) {
         if (detectedClean.toLowerCase().includes(heroName.toLowerCase()) && heroName.length > 0) {
             return heroName;
@@ -81,16 +80,16 @@ async function checkCharacterName(img, worker, lang) {
 }
 
 /**
- * 3. 메인 스캔 함수 (ROI 기반 수치 분석)
+ * 3. 메인 스캔 함수 (적 정보 제거 및 수치 보정 강화)
  */
 async function runMainScan(img) {
     const currentLang = localStorage.getItem('owlog_lang') || 'en';
-    const saveBtn = document.getElementById('saveBtn'); 
+    const saveBtn = document.getElementById('saveBtn');
     const statusText = document.getElementById('status');
     const debugText = document.getElementById('debug-raw-text');
-    
+
     saveBtn.disabled = true;
-    statusText.innerText = (currentLang === 'ko') ? ">> 정밀 분석 중..." : ">> DEEP SCANNING...";
+    statusText.innerText = (currentLang === 'ko') ? ">> 데이터 정밀 분석 중..." : ">> DEEP SCANNING...";
     statusText.classList.remove('text-green-500', 'text-red-500');
     statusText.classList.add('text-blue-500', 'animate-pulse');
 
@@ -98,13 +97,13 @@ async function runMainScan(img) {
 
     try {
         const isCropped = (img.width / img.height) < 1.3;
-        
-        // [좌표 설정] 가이드 이미지 기반
+
+        // [좌표 설정] 가이드 이미지 기반 (적 처치 제거, 레벨 폭 확대)
+        // [수정] 적 처치(enemies) 삭제 및 level 영역 확장
         const regions = {
-            time:    { x: 0.73, y: 0.18, w: 0.23, h: 0.09 },
-            enemies: { x: 0.73, y: 0.28, w: 0.23, h: 0.09 },
-            level:   { x: 0.83, y: 0.58, w: 0.13, h: 0.09 },
-            total:   { x: 0.12, y: 0.92, w: 0.30, h: 0.07 } 
+            time: { x: 0.73, y: 0.18, w: 0.23, h: 0.09 },
+            level: { x: 0.77, y: 0.58, w: 0.22, h: 0.09 }, // 폭을 0.22로 늘려 '11' 인식 대비
+            total: { x: 0.12, y: 0.92, w: 0.30, h: 0.07 }
         };
 
         if (!isCropped) {
@@ -122,46 +121,42 @@ async function runMainScan(img) {
             return data.text.trim();
         }
 
-        // 영역별 스캔 및 이름 인식
-        const [detectedName, rawTime, rawEnemies, rawLevel, rawTotal] = await Promise.all([
+        // [수정] 적 정보 스캔 제거
+        const [detectedName, rawTime, rawLevel, rawTotal] = await Promise.all([
             checkCharacterName(img, worker, currentLang),
             scanRegion(regions.time),
-            scanRegion(regions.enemies),
             scanRegion(regions.level),
             scanRegion(regions.total)
         ]);
 
-        // 캐릭터 선택 동기화
         await initHeroSelect(currentLang, detectedName);
 
         if (debugText) {
             debugText.innerText = `[SCAN RESULT]\n- Name: ${detectedName}\n- Time: ${rawTime}\n- Level: ${rawLevel}\n- Total: ${rawTotal}`;
         }
 
-        let res = { time: "00:00", enemies: "0", level: "0", total: "0" };
-        const pN = (v) => v.replace(/[gq]/g, '9').replace(/[Bs]/g, '3').replace(/[^0-9]/g, '');
+        let res = { time: "00:00", level: "0", total: "0" };
 
         // [시간 보정]
         const tM = rawTime.match(/\d{1,2}[:;.\s]\d{2}/);
-        if (tM) res.time = tM[0].replace(/[;.\s]/g, ':').padStart(5, '0');
+        if (tM) {
+            res.time = tM[0].replace(/[;.\s]/g, ':').padStart(5, '0'); // 예: "27:45"
+        }
+        // B. [레벨] 배율 기호 제외하고 마지막 숫자 '11'만 추출
+        const lvNumbers = rawLevel.replace(/[SIl|]/g, '1').match(/\d+/g);
+        if (lvNumbers) res.level = lvNumbers[lvNumbers.length - 1];
 
-        res.enemies = pN(rawEnemies) || "0";
-        res.level = pN(rawLevel) || "0";
-
-        // [합계 점수 필터링] 5자리 제한 및 불순물 제거
+        // C. [합계] 마지막 숫자 뭉치에서 뒤의 5자리만 취함
         const totalNums = rawTotal.match(/\d+/g);
         if (totalNums) {
-            let sStr = totalNums[totalNums.length - 1]; // 마지막 뭉치 추출
-            if (parseInt(sStr) > 99999) sStr = sStr.slice(-5); // 최대 99999 제한
+            let sStr = totalNums[totalNums.length - 1];
+            if (parseInt(sStr) > 99999) sStr = sStr.slice(-5); // 5자리 제한
             res.total = parseInt(sStr).toLocaleString();
         }
-
-        // UI 업데이트
+        // UI 업데이트 (적 처치 필드 제외)// UI 업데이트: 화면에는 보기 편하게 분:초(27:45)만 표시// [수정] 화면 표시 (이제 ' 기호 없이 27:45로 나옵니다)
         document.getElementById('resTime').innerText = res.time;
-        document.getElementById('resEnemies').innerText = res.enemies;
         document.getElementById('resLevel').innerText = res.level;
         document.getElementById('resTotal').innerText = res.total;
-
         // 최종 유효성 검사
         if (res.time !== "00:00" && res.level !== "0") {
             saveBtn.disabled = false;
@@ -174,6 +169,7 @@ async function runMainScan(img) {
 
     } catch (err) {
         console.error(err);
+        statusText.innerText = "ERROR";
     } finally {
         await worker.terminate();
     }
@@ -182,7 +178,6 @@ async function runMainScan(img) {
 /**
  * 4. 이미지 크로퍼 및 유틸리티
  */
-const imageInput = document.getElementById('imageInput');
 imageInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
