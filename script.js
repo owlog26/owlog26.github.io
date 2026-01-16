@@ -523,6 +523,9 @@ function startRankingRotation() {
 }/**
  * OWLOG - 실시간 랭킹 로드 (레벨 -> 점수 -> 시간 순 정렬)
  */
+/**
+ * OWLOG - 실시간 랭킹 로드 (중복 제거 및 다중 정렬 적용)
+ */
 async function loadRanking() {
     const container = document.getElementById('content-ranking');
     if (!container) return;
@@ -541,25 +544,26 @@ async function loadRanking() {
             return;
         }
 
-        // [핵심 수정] 다중 정렬 로직 적용
-        rankingDataCache = rawData.sort((a, b) => {
-            // 1순위: 고통 레벨 (내림차순 - 숫자가 클수록 위로)
-            const levelA = Number(a.level) || 0;
-            const levelB = Number(b.level) || 0;
-            if (levelB !== levelA) {
-                return levelB - levelA;
-            }
+        // [1] 중복 데이터 제거 로직 (이름/지역/캐릭터/시간/레벨/점수 모두 일치 시)
+        const uniqueData = rawData.filter((item, index, self) =>
+            index === self.findIndex((t) => (
+                t.userId === item.userId &&
+                t.region === item.region &&
+                t.character === item.character &&
+                t.time === item.time &&
+                t.level === item.level &&
+                t.totalScore === item.totalScore
+            ))
+        );
 
-            /*  // 2순위: 합계 점수 (내림차순 - 점수가 높을수록 위로)
-              const scoreA = Number(a.totalScore) || 0;
-              const scoreB = Number(b.totalScore) || 0;
-              if (scoreB !== scoreA) {
-                  return scoreB - scoreA;
-              }*/
+        // [2] 다중 정렬 로직 적용
+        rankingDataCache = uniqueData.sort((a, b) => {
+            // 1순위: 고통 레벨 (내림차순)
+            const levelA = parseInt(String(a.level || 0).replace(/[^0-9]/g, '')) || 0;
+            const levelB = parseInt(String(b.level || 0).replace(/[^0-9]/g, '')) || 0;
+            if (levelB !== levelA) return levelB - levelA;
 
-            // 3순위: 시간 (오름차순 - 시간이 짧을수록 위로)
-            // '00:27:45' 형식끼리 비교하므로 localeCompare가 정확합니다.
-            return a.time.localeCompare(b.time);
+            return String(a.time || "").localeCompare(String(b.time || ""));
         });
 
         // 정렬된 데이터로 로테이션 시작
