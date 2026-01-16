@@ -69,7 +69,8 @@ async function changeLang(lang) {
         btnKo.classList.add('text-gray-400', 'font-normal');
         btnKo.classList.remove('text-black', 'font-black');
     }
-
+// 2. [추가] 브라우저 탭 타이틀 변경
+    document.title = translations[lang]['web_title'] || 'OWLOG';
     // [3] 일반 텍스트 및 플레이스홀더 갱신
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');

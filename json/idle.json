@@ -1,5 +1,6 @@
 {
   "ko": {
+    "web_title": "OWLOG - 나의 기록을 공유하세요",
     "msg_loading": "데이터를 동기화 중입니다...",
     "search_page_title": "유저 프로필",
     "search_page_subtitle": "유저의 상세 기록과 통계를 확인하세요.",
@@ -49,6 +50,7 @@
     "msg_scan_first": "데이터를 먼저 스캔해주세요."
   },
   "en": {
+    "web_title": "OWLOG - Check your rift record.",
     "msg_loading": "Syncing User Data...",
     "search_page_title": "User Profile",
     "search_page_subtitle": "Check user's detailed records and stats.",

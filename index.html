@@ -4,8 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OWLOG - 나만의 균열 기록</title>
-
+    <title>OwLog</title>
+    <link rel="icon" type="image/png" href="./fav/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="./fav/favicon.svg" />
+    <link rel="shortcut icon" href="./fav/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="scanner.js" />
+    <meta name="apple-mobile-web-app-title" content="OwLog" />
+    <link rel="manifest" href="./fav/site.webmanifest" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -196,60 +201,79 @@
         </div>
 
         <!-- 검색기록-->
-      <div id="section-search" class="hidden mt-4 pb-20">
+        <div id="section-search" class="hidden mt-4 pb-20">
 
-    <div id="search-loading-view" class="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-[32px]">
-        <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-black mb-4"></div>
-        <p class="text-sm font-black uppercase tracking-widest text-gray-400" data-i18n="msg_loading">Syncing User Data...</p>
-    </div>
-
-    <div id="search-results-view" class="hidden">
-        <div class="relative p-5 md:p-8 bg-gray-50 rounded-[32px] border border-gray-100 flex flex-row items-center gap-4 md:gap-8 mb-6 md:mb-10 overflow-hidden">
-            
-            <div id="search-profile-img"
-                class="w-20 h-20 md:w-28 md:h-28 rounded-2xl bg-white border border-gray-100 overflow-hidden shadow-sm flex-shrink-0">
+            <div id="search-loading-view"
+                class="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-[32px]">
+                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-black mb-4"></div>
+                <p class="text-sm font-black uppercase tracking-widest text-gray-400" data-i18n="msg_loading">Syncing
+                    User Data...</p>
             </div>
 
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-0.5 md:mb-1">
-                    <h3 id="search-user-id" class="text-xl md:text-3xl font-black tracking-tighter truncate">---</h3>
-                    <div id="search-user-flag" class="w-4 h-3 md:w-5 md:h-3.5 rounded-sm overflow-hidden shadow-sm flex-shrink-0"></div>
-                </div>
-                
-                <p id="search-user-region" class="text-[9px] md:text-xs font-black text-blue-500 uppercase tracking-widest mb-3 md:mb-5">---</p>
+            <div id="search-results-view" class="hidden">
+                <div
+                    class="relative p-5 md:p-8 bg-gray-50 rounded-[32px] border border-gray-100 flex flex-row items-center gap-4 md:gap-8 mb-6 md:mb-10 overflow-hidden">
 
-                <div class="flex gap-4 md:gap-10">
-                    <div>
-                        <p class="text-[8px] md:text-[10px] font-bold text-gray-400 uppercase mb-0.5" data-i18n="label_total_plays">Total</p>
-                        <p id="search-total-play" class="font-black text-sm md:text-lg text-gray-900 leading-none">0</p>
+                    <div id="search-profile-img"
+                        class="w-20 h-20 md:w-28 md:h-28 rounded-2xl bg-white border border-gray-100 overflow-hidden shadow-sm flex-shrink-0">
                     </div>
-                    <div>
-                        <p class="text-[8px] md:text-[10px] font-bold text-gray-400 uppercase mb-0.5" data-i18n="label_last_record">Last</p>
-                        <p id="search-last-update" class="font-black text-sm md:text-lg text-gray-900 leading-none">---</p>
+
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-0.5 md:mb-1">
+                            <h3 id="search-user-id" class="text-xl md:text-3xl font-black tracking-tighter truncate">---
+                            </h3>
+                            <div id="search-user-flag"
+                                class="w-4 h-3 md:w-5 md:h-3.5 rounded-sm overflow-hidden shadow-sm flex-shrink-0">
+                            </div>
+                        </div>
+
+                        <p id="search-user-region"
+                            class="text-[9px] md:text-xs font-black text-blue-500 uppercase tracking-widest mb-3 md:mb-5">
+                            ---</p>
+
+                        <div class="flex gap-4 md:gap-10">
+                            <div>
+                                <p class="text-[8px] md:text-[10px] font-bold text-gray-400 uppercase mb-0.5"
+                                    data-i18n="label_total_plays">Total</p>
+                                <p id="search-total-play"
+                                    class="font-black text-sm md:text-lg text-gray-900 leading-none">0</p>
+                            </div>
+                            <div>
+                                <p class="text-[8px] md:text-[10px] font-bold text-gray-400 uppercase mb-0.5"
+                                    data-i18n="label_last_record">Last</p>
+                                <p id="search-last-update"
+                                    class="font-black text-sm md:text-lg text-gray-900 leading-none">---</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="absolute top-3 right-3 md:static flex items-center gap-0 md:gap-2">
+                        <button id="btn-refresh-data"
+                            class="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center bg-transparent md:bg-white border-none md:border md:border-gray-200 md:shadow-sm rounded-xl text-gray-400 hover:text-black transition-all active:scale-90 group">
+                            <i
+                                class="fa-solid fa-rotate-right text-xs md:text-sm group-hover:rotate-180 transition-transform duration-500"></i>
+                        </button>
+
+                        <button id="btn-share-profile"
+                            class="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center bg-transparent md:bg-white border-none md:border md:border-gray-200 md:shadow-sm rounded-xl text-gray-400 hover:text-blue-500 transition-all active:scale-90">
+                            <i class="fa-solid fa-share-nodes text-xs md:text-sm"></i>
+                        </button>
                     </div>
                 </div>
-            </div>
 
-            <div class="absolute top-3 right-3 md:static flex items-center gap-0 md:gap-2">
-                <button id="btn-refresh-data" class="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center bg-transparent md:bg-white border-none md:border md:border-gray-200 md:shadow-sm rounded-xl text-gray-400 hover:text-black transition-all active:scale-90 group">
-                    <i class="fa-solid fa-rotate-right text-xs md:text-sm group-hover:rotate-180 transition-transform duration-500"></i>
-                </button>
-                
-                <button id="btn-share-profile" class="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center bg-transparent md:bg-white border-none md:border md:border-gray-200 md:shadow-sm rounded-xl text-gray-400 hover:text-blue-500 transition-all active:scale-90">
-                    <i class="fa-solid fa-share-nodes text-xs md:text-sm"></i>
-                </button>
+                <div class="flex border-b border-gray-100 mb-8">
+                    <button onclick="switchSearchTab('records')" id="search-tab-records"
+                        class="flex-1 py-4 text-center text-[13px] md:text-sm tab-active transition-all"
+                        data-i18n="tab_search_records">Records</button>
+                    <button onclick="switchSearchTab('summary')" id="search-tab-summary"
+                        class="flex-1 py-4 text-center text-[13px] md:text-sm text-gray-400 font-medium transition-all"
+                        data-i18n="tab_search_stats">Stats</button>
+                </div>
+
+                <div id="search-content-records" class="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0"></div>
+                <div id="search-content-summary" class="hidden space-y-3"></div>
             </div>
         </div>
-
-        <div class="flex border-b border-gray-100 mb-8">
-            <button onclick="switchSearchTab('records')" id="search-tab-records" class="flex-1 py-4 text-center text-[13px] md:text-sm tab-active transition-all" data-i18n="tab_search_records">Records</button>
-            <button onclick="switchSearchTab('summary')" id="search-tab-summary" class="flex-1 py-4 text-center text-[13px] md:text-sm text-gray-400 font-medium transition-all" data-i18n="tab_search_stats">Stats</button>
-        </div>
-
-        <div id="search-content-records" class="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0"></div>
-        <div id="search-content-summary" class="hidden space-y-3"></div>
-    </div>
-</div>
 
     </main>
 
