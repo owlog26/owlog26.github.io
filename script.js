@@ -895,7 +895,7 @@ function performUserSearch(query) {
     switchSearchTab('records');
 }
 let searchCurrentPage = 1;
-const searchItemsPerPage = 15;
+const searchItemsPerPage = 10;
 
 /**
  * 1. 검색 탭 전환 로직 수정
