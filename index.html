@@ -84,12 +84,17 @@
             </div>
 
             <div class="w-full">
-                <div class="flex border-b border-gray-100">
-                    <button onclick="switchHomeTab('ranking')" id="tab-ranking" data-i18n="tab_ranking"
-                        class="flex-1 py-3 md:py-4 text-center text-[13px] md:text-sm tab-active transition-all">
+                <div class="flex border-b border-gray-100 mb-6">
+                    <button id="home-tab-ranking" onclick="switchHomeTab('ranking')"
+                        class="flex-1 py-4 text-center text-[13px] md:text-sm tab-active transition-all"
+                        data-i18n="tab_ranking">
+                        Ranking
                     </button>
-                    <button onclick="switchHomeTab('switchHomeTab')" id="tab-guide" data-i18n="tab_guide"
-                        class="flex-1 py-3 md:py-4 text-center text-[13px] md:text-sm text-gray-400 hover:text-gray-600 transition-all font-medium">
+
+                    <button id="home-tab-guide" onclick="switchHomeTab('guide')"
+                        class="flex-1 py-4 text-center text-[13px] md:text-sm text-gray-400 font-medium transition-all"
+                        data-i18n="how_to_register">
+                        How to Register
                     </button>
                 </div>
 

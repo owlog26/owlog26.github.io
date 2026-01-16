@@ -28,7 +28,7 @@ const isoCodes = [
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('id');
-    
+
     if (userId) {
         handleDirectJump(userId);
     }
@@ -69,7 +69,7 @@ async function changeLang(lang) {
         btnKo.classList.add('text-gray-400', 'font-normal');
         btnKo.classList.remove('text-black', 'font-black');
     }
-// 2. [추가] 브라우저 탭 타이틀 변경
+    // 2. [추가] 브라우저 탭 타이틀 변경
     document.title = translations[lang]['web_title'] || 'OWLOG';
     // [3] 일반 텍스트 및 플레이스홀더 갱신
     document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -91,7 +91,7 @@ async function changeLang(lang) {
         if (typeof initHeroSelect === "function") await initHeroSelect(lang, charSelect.value);
     }
 
-     // 검색 섹션이 열려있는 경우 내부 콘텐츠 재렌더링
+    // 검색 섹션이 열려있는 경우 내부 콘텐츠 재렌더링
     const sectionSearch = document.getElementById('section-search');
     if (sectionSearch && !sectionSearch.classList.contains('hidden')) {
         // 현재 활성화된 검색 탭 확인 후 재호출
@@ -279,6 +279,15 @@ function switchTab(tab) {
         if (el) { el.classList.remove('text-black'); el.classList.add('text-gray-300'); }
     });
 
+    if (tab === 'ranking') {
+        sectionRank.classList.remove('hidden');
+        if (navs.rank) navs.rank.classList.replace('text-gray-300', 'text-black');
+        initDetailedRankPage();
+    }
+    if (tab === 'guide') {
+        sectionGuide.classList.remove('hidden');
+        if (navs.guide) navs.guide.classList.replace('text-gray-300', 'text-black');
+    }
     if (tab === 'home') {
         sectionHome.classList.remove('hidden');
         navs.home.classList.replace('text-gray-300', 'text-black');
@@ -290,16 +299,7 @@ function switchTab(tab) {
     } else {
         // 홈이 아닌 탭 공통 로직
         if (rankingTimeout) { clearTimeout(rankingTimeout); rankingTimeout = null; }
-        
-        if (tab === 'ranking') {
-            sectionRank.classList.remove('hidden');
-            if(navs.rank) navs.rank.classList.replace('text-gray-300', 'text-black');
-            initDetailedRankPage();
-        }
-        if (tab === 'guide') {
-            sectionGuide.classList.remove('hidden');
-            if(navs.guide) navs.guide.classList.replace('text-gray-300', 'text-black');
-        }
+
     }
     window.scrollTo(0, 0);
 }
@@ -307,48 +307,47 @@ function switchTab(tab) {
 /**
  * 2. 홈 섹션 내부 서브 탭 전환 (Ranking <-> Guide)
  */
-function switchHomeTab(subTab) {
-    const rCont = document.getElementById('content-ranking');
-    const gCont = document.getElementById('content-guide');
-    const rTabBtn = document.getElementById('tab-ranking');
-    const gTabBtn = document.getElementById('tab-guide');
-    const lang = localStorage.getItem('owlog_lang') || 'en';
+/**
+ * 홈 섹션 내부 탭 전환 (Ranking <-> Guide)
+ */
+function switchHomeTab(tab) {
+    const rankArea = document.getElementById('content-ranking');
+    const guideArea = document.getElementById('content-guide');
+    
+    // 탭 버튼의 활성화 상태를 바꾸기 위한 요소들
+    const tabRankBtn = document.getElementById('home-tab-ranking');
+    const tabGuideBtn = document.getElementById('home-tab-guide');
 
+    if (tab === 'ranking') {
+        // 1. 콘텐츠 교체
+        rankArea?.classList.remove('hidden');
+        guideArea?.classList.add('hidden');
 
-    if (subTab === 'ranking') {
-        rCont.style.display = ''; // 인라인 스타일 제거 (CSS 그리드 적용을 위함)
-        rCont.classList.remove('hidden');
-        gCont.classList.add('hidden');
-        rTabBtn.classList.add('tab-active');
-        rTabBtn.classList.remove('text-gray-400', 'font-medium');
-        gTabBtn.classList.remove('tab-active');
-        gTabBtn.classList.add('text-gray-400', 'font-medium');
-        loadRanking();
-    }else if (type === 'records') {
-        recCont.classList.remove('hidden');
-        sumCont.classList.add('hidden');
-        recBtn.classList.replace('text-gray-400', 'text-black');
-        recBtn.classList.replace('border-transparent', 'border-black');
-        sumBtn.classList.replace('text-black', 'text-gray-400');
-        sumBtn.classList.replace('border-black', 'border-transparent');
-        
-        // 시간순(최신순) 리스트 출력
-        recCont.innerHTML = '';
-        searchUserRecordsRef.forEach((item, idx) => {
-            recCont.appendChild(createDetailedRankCard(item, idx + 1, lang));
-        });
-    } else {
-        gCont.style.display = ''; // 인라인 스타일 제거
-        gCont.classList.remove('hidden');
-        rCont.classList.add('hidden');
-        gTabBtn.classList.add('tab-active');
-        gTabBtn.classList.remove('text-gray-400', 'font-medium');
-        rTabBtn.classList.remove('tab-active');
-        rTabBtn.classList.add('text-gray-400', 'font-medium');
-        if (rankingTimeout) { clearTimeout(rankingTimeout); rankingTimeout = null; }
+        // 2. 버튼 스타일 변경
+        tabRankBtn?.classList.add('tab-active');
+        tabRankBtn?.classList.remove('text-gray-400', 'font-medium');
+        tabGuideBtn?.classList.remove('tab-active');
+        tabGuideBtn?.classList.add('text-gray-400', 'font-medium');
 
-        // 캐릭터 요약 통계 출력
-        renderSummaryStats(sumCont, lang);
+        // 3. 랭킹 탭으로 돌아왔으므로 자동 롤링 다시 시작
+        if (typeof startRankingTimer === 'function') startRankingTimer();
+    } 
+    else if (tab === 'guide') {
+        // 1. 콘텐츠 교체
+        rankArea?.classList.add('hidden');
+        guideArea?.classList.remove('hidden');
+
+        // 2. 버튼 스타일 변경
+        tabGuideBtn?.classList.add('tab-active');
+        tabGuideBtn?.classList.remove('text-gray-400', 'font-medium');
+        tabRankBtn?.classList.remove('tab-active');
+        tabRankBtn?.classList.add('text-gray-400', 'font-medium');
+
+        // 3. 가이드를 볼 때는 랭킹이 돌아갈 필요가 없으므로 타이머 정지
+        if (rankingTimeout) {
+            clearTimeout(rankingTimeout);
+            rankingTimeout = null;
+        }
     }
 }
 /**
@@ -678,7 +677,7 @@ function createDetailedRankCard(item, rank, lang) {
     if (englishName === "Zilan") { objPos = "center 30%"; transform = ""; }
     if (englishName === "Synthia") { objPos = "center 20%"; transform = "scale(1.5) translateX(-15px)"; }
     if (englishName === "Anibella") { objPos = "center 10%"; transform = "scale(1.5)"; }
- 
+
 
     const card = document.createElement('div');
     card.className = "flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm transition-all duration-300 opacity-0 transform translate-y-2";
@@ -740,7 +739,7 @@ function renderDetailedPagination() {
 let currentUserRecords = [];
 
 // 검색창 엔터키 이벤트 리스너 (DOMContentLoaded 내부에 추가)
-document.querySelector('[data-i18n-placeholder="placeholder_search"]').addEventListener('keypress', function(e) {
+document.querySelector('[data-i18n-placeholder="placeholder_search"]').addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
         performUserSearch(this.value.trim());
     }
@@ -752,12 +751,12 @@ document.querySelector('[data-i18n-placeholder="placeholder_search"]').addEventL
 function updateSearchProfile(userId) {
     const lang = localStorage.getItem('owlog_lang') || 'en';
     const firstItem = currentUserRecords[0]; // 가장 최근 기록 기반 (정렬된 상태 가정)
-    
+
     // 캐릭터별 플레이 횟수 계산하여 가장 많이 쓴 캐릭터 찾기
     const charCounts = {};
     currentUserRecords.forEach(r => charCounts[r.character] = (charCounts[r.character] || 0) + 1);
     const mostPlayedChar = Object.keys(charCounts).reduce((a, b) => charCounts[a] > charCounts[b] ? a : b);
-    
+
     // 캐릭터 정보 찾기 (이미지용)
     const heroInfo = heroDataCache.characters.find(c => c.english_name === mostPlayedChar || c.korean_name === mostPlayedChar);
     const fileName = heroInfo ? heroInfo.english_name.replace(/\s+/g, '_') : 'Hero';
@@ -767,11 +766,11 @@ function updateSearchProfile(userId) {
     document.getElementById('search-user-region').innerText = firstItem.region;
     document.getElementById('search-last-update').innerText = `Last updated: ${firstItem.time || '---'}`;
     document.getElementById('search-total-play').innerText = `${currentUserRecords.length} PLAYS`;
-    
+
     document.getElementById('search-user-flag').innerHTML = `
         <img src="https://flagcdn.com/w40/${firstItem.region.toLowerCase()}.png" class="w-full h-full object-cover">
     `;
-    
+
     document.getElementById('search-profile-img').innerHTML = `
         <img src="./heroes/${fileName}.webp" class="w-full h-full object-cover" style="object-position: center 20%; transform: scale(1.2);">
     `;
@@ -850,7 +849,7 @@ function performUserSearch(query) {
     const lang = localStorage.getItem('owlog_lang') || 'en';
 
     // 데이터 필터링 (대소문자 구분 없음)
-    const userRecords = rankingDataCache.filter(item => 
+    const userRecords = rankingDataCache.filter(item =>
         item.userId.toLowerCase() === query.toLowerCase()
     );
 
@@ -862,7 +861,7 @@ function performUserSearch(query) {
     // [핵심] 데이터 바인딩 전 로딩 뷰 숨기고 결과 뷰 보여주기
     document.getElementById('search-loading-view').classList.add('hidden');
     document.getElementById('search-results-view').classList.remove('hidden');
-    
+
     // 전역 참조 변수에 데이터 저장 (정렬되지 않은 원본 순서 유지)
     searchUserRecordsRef = [...userRecords];
 
@@ -877,14 +876,14 @@ function performUserSearch(query) {
     const fileName = heroInfo ? heroInfo.english_name.replace(/\s+/g, '_') : 'Hero';
 
     // 최신 시간 (G열) 가져오기
-    const latestRecord = userRecords[userRecords.length - 1]; 
+    const latestRecord = userRecords[userRecords.length - 1];
 
     // 프로필 UI 업데이트
     document.getElementById('search-user-id').innerText = query;
     document.getElementById('search-user-region').innerText = latestRecord.region;
     document.getElementById('search-total-play').innerText = userRecords.length;
     document.getElementById('search-last-update').innerText = latestRecord.time; // 시트의 실제 시간
-    
+
     document.getElementById('search-user-flag').innerHTML = `
         <img src="https://flagcdn.com/w40/${latestRecord.region.toLowerCase()}.png" class="w-full h-full object-cover">
     `;
@@ -915,18 +914,18 @@ function switchSearchTab(type) {
         recCont.classList.remove('hidden');
         paginCont.classList.remove('hidden'); // 페이징 표시
         sumCont.classList.add('hidden');
-        
+
         recBtn.className = "flex-1 py-4 text-center text-[13px] md:text-sm tab-active transition-all";
         sumBtn.className = "flex-1 py-4 text-center text-[13px] md:text-sm text-gray-400 font-medium transition-all";
-        
+
         // 페이지 초기화 및 렌더링
         searchCurrentPage = 1;
-        renderSearchRecordsPage(); 
+        renderSearchRecordsPage();
     } else {
         sumCont.classList.remove('hidden');
         recCont.classList.add('hidden');
         paginCont.classList.add('hidden'); // 요약 탭에서는 페이징 숨김
-        
+
         sumBtn.className = "flex-1 py-4 text-center text-[13px] md:text-sm tab-active transition-all";
         recBtn.className = "flex-1 py-4 text-center text-[13px] md:text-sm text-gray-400 font-medium transition-all";
 
@@ -986,7 +985,7 @@ function renderSummaryStats(container, lang) {
                 </div>
                 <div>
                     <p class="text-[9px] font-bold text-gray-400 uppercase mb-0.5">${labelAvg}</p>
-                    <p class="text-sm font-black text-gray-900">${Math.round(s.total/s.count).toLocaleString()}</p>
+                    <p class="text-sm font-black text-gray-900">${Math.round(s.total / s.count).toLocaleString()}</p>
                 </div>
             </div>
         `;
@@ -1000,7 +999,7 @@ function renderSummaryStats(container, lang) {
 function handleDirectJump(userId) {
     // 즉시 검색 섹션 활성화 (이때 index.html에 설정된 loading-view가 기본으로 보임)
     switchTab('search');
-    
+
     // 로딩 상태 강제 리셋 (결과 뷰 숨기고 로딩 뷰 보여주기)
     document.getElementById('search-loading-view').classList.remove('hidden');
     document.getElementById('search-results-view').classList.add('hidden');
@@ -1033,8 +1032,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 // 스프레드시트 데이터 다시 불러오기 (기존 loadRanking 함수 호출)
-                await loadRanking(); 
-                
+                await loadRanking();
+
                 // 데이터 로드 완료 후 다시 검색 결과 반영
                 performUserSearch(userId);
             } catch (error) {
@@ -1053,15 +1052,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!userId || userId === '---') return;
 
             const lang = localStorage.getItem('owlog_lang') || 'en';
-            
+
             // 공유용 URL 생성 (한글 닉네임 대응을 위해 encodeURIComponent 사용)
             const shareUrl = `https://owlog.xyz/?id=${encodeURIComponent(userId)}`;
 
             // 클립보드 복사 실행
             navigator.clipboard.writeText(shareUrl).then(() => {
                 // 복사 완료 알림 (alert 대신 커스텀 토스트가 있다면 교체 가능)
-                const msg = lang === 'ko' 
-                    ? "프로필 주소가 복사되었습니다!" 
+                const msg = lang === 'ko'
+                    ? "프로필 주소가 복사되었습니다!"
                     : "Profile link copied to clipboard!";
                 alert(msg);
             }).catch(err => {
@@ -1082,7 +1081,7 @@ function renderSearchRecordsPage() {
     const pagedRecords = searchUserRecordsRef.slice(start, end);
 
     container.innerHTML = '';
-    
+
     // 카드 렌더링
     pagedRecords.forEach((item, idx) => {
         const globalRank = start + idx + 1;
@@ -1103,7 +1102,7 @@ function renderSearchPagination() {
 
     paginContainer.innerHTML = '';
     const totalPages = Math.ceil(searchUserRecordsRef.length / searchItemsPerPage);
-    
+
     // 1페이지뿐이라면 페이징 표시 안 함
     if (totalPages <= 1) return;
 
@@ -1111,12 +1110,11 @@ function renderSearchPagination() {
         const btn = document.createElement('button');
         btn.innerText = i;
         // 디자인 통일: 상세 랭킹의 페이징 스타일과 동일하게 적용
-        btn.className = `w-10 h-10 rounded-xl text-sm font-black transition-all ${
-            searchCurrentPage === i 
-            ? 'bg-black text-white shadow-lg scale-110' 
+        btn.className = `w-10 h-10 rounded-xl text-sm font-black transition-all ${searchCurrentPage === i
+            ? 'bg-black text-white shadow-lg scale-110'
             : 'bg-white border border-gray-100 text-gray-400 hover:bg-gray-100'
-        }`;
-        
+            }`;
+
         btn.onclick = () => {
             searchCurrentPage = i;
             renderSearchRecordsPage();
