@@ -213,7 +213,7 @@ async function saveRecord() {
     const charName = document.getElementById('resName').value;
     const totalScore = document.getElementById('resTotal').innerText.replace(/,/g, '');
     // [추가] 10,000점 이하 차단 로직
-    if (totalScoreNum <= 10000) {
+    if (totalScore <= 10000) {
         const errorMsg = lang === 'ko'
             ? "10,000점 이하의 기록은 등록할 수 없습니다."
             : "Scores 10,000 or less cannot be registered.";
