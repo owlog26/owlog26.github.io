@@ -21,6 +21,19 @@ const isoCodes = [
     "SY", "TW", "TJ", "TZ", "TH", "TL", "TG", "TK", "TO", "TT", "TN", "TR", "TM", "TC", "TV", "UG",
     "UA", "AE", "GB", "UM", "UY", "UZ", "VU", "VE", "VN", "VG", "VI", "WF", "EH", "YE", "ZM", "ZW"
 ];
+
+/**
+ * 1. 페이지 로드 시 URL 파라미터 확인 (id=nickname)
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('id');
+    
+    if (userId) {
+        handleDirectJump(userId);
+    }
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
     await loadLang();
     initRegionSelect();
@@ -75,6 +88,14 @@ async function changeLang(lang) {
     const charSelect = document.getElementById('resName');
     if (charSelect && charSelect.value && charSelect.value !== "-") {
         if (typeof initHeroSelect === "function") await initHeroSelect(lang, charSelect.value);
+    }
+
+     // 검색 섹션이 열려있는 경우 내부 콘텐츠 재렌더링
+    const sectionSearch = document.getElementById('section-search');
+    if (sectionSearch && !sectionSearch.classList.contains('hidden')) {
+        // 현재 활성화된 검색 탭 확인 후 재호출
+        const isSummary = !document.getElementById('search-content-summary').classList.contains('hidden');
+        switchSearchTab(isSummary ? 'summary' : 'records');
     }
 }
 
@@ -238,16 +259,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 /**
  * 홈 섹션 내부 서브 탭 전환 (Ranking <-> Guide)
- *//**
-* 홈 섹션 내부 서브 탭 전환 (Ranking <-> Guide)
-*/
-/**
- * 1. 전역 네비게이션 전환 (Home / Rank / Guide)
  */
 function switchTab(tab) {
     const sectionHome = document.getElementById('section-home');
     const sectionRank = document.getElementById('section-ranking');
     const sectionGuide = document.getElementById('section-guide');
+    const sectionSearch = document.getElementById('section-search'); // 추가
+
     const navs = {
         home: document.getElementById('nav-home'),
         rank: document.getElementById('nav-rank'),
@@ -255,7 +273,7 @@ function switchTab(tab) {
     };
 
     // 모든 섹션 숨기기 & 아이콘 초기화
-    [sectionHome, sectionRank, sectionGuide].forEach(el => el?.classList.add('hidden'));
+    [sectionHome, sectionRank, sectionGuide, sectionSearch].forEach(el => el?.classList.add('hidden'));
     Object.values(navs).forEach(el => {
         if (el) { el.classList.remove('text-black'); el.classList.add('text-gray-300'); }
     });
@@ -263,11 +281,24 @@ function switchTab(tab) {
     if (tab === 'home') {
         sectionHome.classList.remove('hidden');
         navs.home.classList.replace('text-gray-300', 'text-black');
-        switchHomeTab('ranking'); // 홈 복구 시 기본 탭은 랭킹
+        switchHomeTab('ranking');
+    } else if (tab === 'search') {
+        // 검색 결과 탭 활성화 (검색은 하단 nav가 없으므로 아이콘 활성화 생략)
+        sectionSearch.classList.remove('hidden');
+        if (rankingTimeout) { clearTimeout(rankingTimeout); rankingTimeout = null; }
     } else {
-        if (rankingTimeout) { clearTimeout(rankingTimeout); rankingTimeout = null; } // 타이머 정지
-        if (tab === 'ranking') { sectionRank.classList.remove('hidden'); navs.rank.classList.replace('text-gray-300', 'text-black'); }
-        if (tab === 'guide') { sectionGuide.classList.remove('hidden'); navs.guide.classList.replace('text-gray-300', 'text-black'); }
+        // 홈이 아닌 탭 공통 로직
+        if (rankingTimeout) { clearTimeout(rankingTimeout); rankingTimeout = null; }
+        
+        if (tab === 'ranking') {
+            sectionRank.classList.remove('hidden');
+            if(navs.rank) navs.rank.classList.replace('text-gray-300', 'text-black');
+            initDetailedRankPage();
+        }
+        if (tab === 'guide') {
+            sectionGuide.classList.remove('hidden');
+            if(navs.guide) navs.guide.classList.replace('text-gray-300', 'text-black');
+        }
     }
     window.scrollTo(0, 0);
 }
@@ -280,6 +311,8 @@ function switchHomeTab(subTab) {
     const gCont = document.getElementById('content-guide');
     const rTabBtn = document.getElementById('tab-ranking');
     const gTabBtn = document.getElementById('tab-guide');
+    const lang = localStorage.getItem('owlog_lang') || 'en';
+
 
     if (subTab === 'ranking') {
         rCont.style.display = ''; // 인라인 스타일 제거 (CSS 그리드 적용을 위함)
@@ -290,6 +323,19 @@ function switchHomeTab(subTab) {
         gTabBtn.classList.remove('tab-active');
         gTabBtn.classList.add('text-gray-400', 'font-medium');
         loadRanking();
+    }else if (type === 'records') {
+        recCont.classList.remove('hidden');
+        sumCont.classList.add('hidden');
+        recBtn.classList.replace('text-gray-400', 'text-black');
+        recBtn.classList.replace('border-transparent', 'border-black');
+        sumBtn.classList.replace('text-black', 'text-gray-400');
+        sumBtn.classList.replace('border-black', 'border-transparent');
+        
+        // 시간순(최신순) 리스트 출력
+        recCont.innerHTML = '';
+        searchUserRecordsRef.forEach((item, idx) => {
+            recCont.appendChild(createDetailedRankCard(item, idx + 1, lang));
+        });
     } else {
         gCont.style.display = ''; // 인라인 스타일 제거
         gCont.classList.remove('hidden');
@@ -299,6 +345,9 @@ function switchHomeTab(subTab) {
         rTabBtn.classList.remove('tab-active');
         rTabBtn.classList.add('text-gray-400', 'font-medium');
         if (rankingTimeout) { clearTimeout(rankingTimeout); rankingTimeout = null; }
+
+        // 캐릭터 요약 통계 출력
+        renderSummaryStats(sumCont, lang);
     }
 }
 /**
@@ -364,10 +413,25 @@ function renderRankingSlide() {
             imageScale = "scale(1.3)";
         } else if (englishName === "Ginzo") {
             objectPosition = "center 30%"; // 세로 위치만 고정
-            imageScale = "scale(1.3)";
-        }else if (englishName === "Akaisha") {
+            imageScale = "scale(1.3)  translateX(3px)";
+        } else if (englishName === "Akaisha") {
             objectPosition = "center 20%"; // 세로 위치만 고정
             imageScale = "scale(1.3)";
+        } else if (englishName === "Alessia") {
+            objectPosition = "center 40%"; // 세로 위치만 고정
+            imageScale = "scale(1)";
+        } else if (englishName === "Adelvyn") {
+            objectPosition = "center 40%"; // 세로 위치만 고정
+            imageScale = "scale(1)";
+        } else if (englishName === "Kelara") {
+            objectPosition = "center 30%"; // 세로 위치만 고정
+            imageScale = "scale(1.2)";
+        } else if (englishName === "Vesper") {
+            objectPosition = "center 30%"; // 세로 위치만 고정
+            imageScale = "scale(1.7)";
+        } else if (englishName === "Jadetalon") {
+            objectPosition = "center -20%"; // 세로 위치만 고정
+            imageScale = "scale(2) translateX(10px)";
         }
 
 
@@ -472,3 +536,550 @@ async function loadRanking() {
         console.error("Ranking Load Error:", error);
     }
 }
+
+/**
+ * 상세 랭킹 전용 상태 변수
+ */
+let detailedRankData = [];      // 필터링된 결과 저장용
+let detailedCurrentPage = 1;    // 현재 페이지
+const detailedItemsPerPage = 16; // 페이지당 표시 개수
+
+/**
+ * 상세 랭킹 페이지 초기화
+ */
+async function initDetailedRankPage() {
+    const heroSelect = document.getElementById('detailed-filter-hero');
+    const levelSelect = document.getElementById('detailed-filter-level');
+    const regionSelect = document.getElementById('detailed-filter-region'); // 국가 필터 요소
+    const lang = localStorage.getItem('owlog_lang') || 'en';
+
+    // 데이터 로드 대기 (생략 - 기존 로직 유지)
+    if (!rankingDataCache || rankingDataCache.length === 0 || !heroDataCache) {
+        setTimeout(initDetailedRankPage, 500);
+        return;
+    }
+
+    // 1. 캐릭터 필터 옵션 (기존 로직 유지)
+    const currentHero = heroSelect.value;
+    heroSelect.innerHTML = `<option value="">${translations[lang]['filter_all_heroes'] || 'All Heroes'}</option>`;
+    heroDataCache.characters.forEach(hero => {
+        const opt = document.createElement('option');
+        opt.value = hero.english_name;
+        opt.text = lang === 'ko' ? hero.korean_name : hero.english_name;
+        heroSelect.add(opt);
+    });
+    heroSelect.value = currentHero;
+
+    // 2. 레벨 필터 옵션 (번역 적용)
+    const currentLevel = levelSelect.value;
+    const levelLabel = translations[lang]['label_level'] || 'Anguish';
+    levelSelect.innerHTML = `<option value="">${translations[lang]['filter_all_levels'] || 'All Levels'}</option>`;
+    for (let i = 16; i >= 1; i--) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.text = `${levelLabel} ${i}`;
+        levelSelect.add(opt);
+    }
+    levelSelect.value = currentLevel;
+
+    // 3. 국가 필터 옵션 (isoCodes 변수 참고)
+    const currentRegion = regionSelect.value;
+    // translations[lang]['label_region']이 "All Regions" 또는 "국가 선택" 등으로 표시되도록 함
+    regionSelect.innerHTML = `<option value="">${translations[lang]['label_region'] || 'All Regions'}</option>`;
+
+    // 전역 변수 isoCodes를 사용하여 옵션 생성
+    isoCodes.forEach(code => {
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.text = code.toUpperCase();
+        regionSelect.add(opt);
+    });
+    regionSelect.value = currentRegion;
+
+    handleRankFilterChange();
+}
+
+/**
+ * 필터 변경 핸들러
+ */
+function handleRankFilterChange() {
+    const heroVal = document.getElementById('detailed-filter-hero').value;
+    const levelVal = document.getElementById('detailed-filter-level').value;
+    const regionVal = document.getElementById('detailed-filter-region').value; // 국가 선택값
+
+    const selectedHeroInfo = heroDataCache ? heroDataCache.characters.find(c => c.english_name === heroVal) : null;
+
+    detailedRankData = rankingDataCache.filter(item => {
+        // 영웅 체크
+        let matchHero = true;
+        if (heroVal && selectedHeroInfo) {
+            matchHero = (item.character === selectedHeroInfo.english_name || item.character === selectedHeroInfo.korean_name);
+        }
+        // 레벨 체크
+        const matchLevel = !levelVal || String(item.level) === levelVal;
+        // 국가 체크
+        const matchRegion = !regionVal || item.region === regionVal;
+
+        return matchHero && matchLevel && matchRegion;
+    });
+
+    detailedCurrentPage = 1;
+    renderDetailedRankList();
+}
+/**
+ * 3. 리스트 렌더링 (15개씩 페이징)
+ */
+function renderDetailedRankList() {
+    const listContainer = document.getElementById('detailed-rank-list');
+    const lang = localStorage.getItem('owlog_lang') || 'en';
+    if (!listContainer) return;
+
+    listContainer.innerHTML = '';
+
+    const start = (detailedCurrentPage - 1) * detailedItemsPerPage;
+    const end = start + detailedItemsPerPage;
+    const pagedData = detailedRankData.slice(start, end);
+
+    if (pagedData.length === 0) {
+        listContainer.innerHTML = `<div class="md:col-span-2 py-20 text-center text-gray-300 text-xs font-bold uppercase">No results match your filters</div>`;
+        document.getElementById('detailed-rank-pagination').innerHTML = '';
+        return;
+    }
+
+    pagedData.forEach((item, index) => {
+        const globalRank = start + index + 1;
+        const card = createDetailedRankCard(item, globalRank, lang);
+        listContainer.appendChild(card);
+    });
+
+    renderDetailedPagination();
+}
+
+/**
+ * 4. 상세 랭킹 전용 카드 생성 (국기/캐릭터 구도 포함)
+ */
+function createDetailedRankCard(item, rank, lang) {
+    const heroInfo = heroDataCache.characters.find(c => c.english_name === item.character || c.korean_name === item.character);
+    const englishName = heroInfo ? heroInfo.english_name : item.character;
+    const displayName = heroInfo ? (lang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : item.character;
+    const regionCode = (item.region || 'us').toLowerCase();
+    const fileName = englishName.replace(/\s+/g, '_');
+
+    // 캐릭터별 커스텀 구도
+    let objPos = "center 20%";
+    let transform = "scale(1)";
+    if (englishName === "Yoiko") { objPos = "center 10%"; transform = "scale(1.8) translateX(-10px)"; }
+    if (englishName === "Huo Yufeng") { objPos = "center 10%"; transform = "scale(1.5) translateX(5px)"; }
+    if (englishName === "Alessia") { objPos = "center 40%"; }
+    if (englishName === "Vesper") { objPos = "center 30%"; transform = "scale(1.5) translateX(5px)"; }
+    if (englishName === "Jadetalon") { objPos = "center 10%"; transform = "scale(2) translateX(15px) translateY(5px)"; }
+    if (englishName === "Hua Ling") { objPos = "center 10%"; transform = "scale(1.5) translateX(2px) translateY(5px)"; }
+    if (englishName === "Zilan") { objPos = "center 30%"; transform = ""; }
+    if (englishName === "Synthia") { objPos = "center 20%"; transform = "scale(1.5) translateX(-15px)"; }
+    if (englishName === "Anibella") { objPos = "center 10%"; transform = "scale(1.5)"; }
+ 
+
+    const card = document.createElement('div');
+    card.className = "flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm transition-all duration-300 opacity-0 transform translate-y-2";
+
+    card.innerHTML = `
+        <div class="flex items-center gap-3">
+            <span class="font-black ${rank <= 3 ? 'text-yellow-500' : 'text-gray-300'} w-6 text-center italic text-base">${rank}</span>
+            <div class="w-5 h-3.5 overflow-hidden rounded-[2px] shadow-sm border border-gray-100 flex-shrink-0 bg-white">
+                <img src="https://flagcdn.com/w40/${regionCode}.png" class="w-full h-full object-cover">
+            </div>
+            <div class="w-14 h-6 md:w-20 md:h-8 rounded-lg bg-gray-200 overflow-hidden relative flex-shrink-0">
+                <img src="./heroes/${fileName}.webp" onerror="this.src='https://via.placeholder.com/80x32?text=Hero'" 
+                     class="w-full h-full object-cover" style="object-position: ${objPos}; transform: ${transform};">
+                <span class="absolute right-0 bottom-0 bg-red-500 text-[8px] text-white px-1 font-bold">Lv.${item.level}</span>
+            </div>
+            <div class="flex flex-col">
+                <span class="font-bold text-sm md:text-base text-gray-800 leading-none">${item.userId}</span>
+                <span class="text-[10px] font-bold text-gray-400 uppercase mt-1">${displayName}</span>
+            </div>
+        </div>
+        <div class="text-right">
+            <span class="text-[10px] font-bold text-gray-400 block mb-0.5">${item.time}</span>
+            <span class="text-base font-black text-gray-900">${Number(item.totalScore).toLocaleString()}</span>
+        </div>
+    `;
+
+    setTimeout(() => card.classList.remove('opacity-0', 'translate-y-2'), 50);
+    return card;
+}
+
+/**
+ * 5. 상세 페이징 버튼 생성
+ */
+function renderDetailedPagination() {
+    const paginContainer = document.getElementById('detailed-rank-pagination');
+    if (!paginContainer) return;
+
+    paginContainer.innerHTML = '';
+    const totalPages = Math.ceil(detailedRankData.length / detailedItemsPerPage);
+    if (totalPages <= 1) return;
+
+    for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.innerText = i;
+        btn.className = `w-10 h-10 rounded-xl text-sm font-black transition-all ${detailedCurrentPage === i ? 'bg-black text-white shadow-lg scale-110' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`;
+        btn.onclick = () => {
+            detailedCurrentPage = i;
+            renderDetailedRankList();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        paginContainer.appendChild(btn);
+    }
+}
+
+
+/**
+ * 검색 관련 전역 상태
+ */
+let currentUserRecords = [];
+
+// 검색창 엔터키 이벤트 리스너 (DOMContentLoaded 내부에 추가)
+document.querySelector('[data-i18n-placeholder="placeholder_search"]').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        performUserSearch(this.value.trim());
+    }
+});
+
+/**
+ * 2. 검색 프로필 헤더 갱신
+ */
+function updateSearchProfile(userId) {
+    const lang = localStorage.getItem('owlog_lang') || 'en';
+    const firstItem = currentUserRecords[0]; // 가장 최근 기록 기반 (정렬된 상태 가정)
+    
+    // 캐릭터별 플레이 횟수 계산하여 가장 많이 쓴 캐릭터 찾기
+    const charCounts = {};
+    currentUserRecords.forEach(r => charCounts[r.character] = (charCounts[r.character] || 0) + 1);
+    const mostPlayedChar = Object.keys(charCounts).reduce((a, b) => charCounts[a] > charCounts[b] ? a : b);
+    
+    // 캐릭터 정보 찾기 (이미지용)
+    const heroInfo = heroDataCache.characters.find(c => c.english_name === mostPlayedChar || c.korean_name === mostPlayedChar);
+    const fileName = heroInfo ? heroInfo.english_name.replace(/\s+/g, '_') : 'Hero';
+
+    // 텍스트 및 이미지 주입
+    document.getElementById('search-user-id').innerText = userId;
+    document.getElementById('search-user-region').innerText = firstItem.region;
+    document.getElementById('search-last-update').innerText = `Last updated: ${firstItem.time || '---'}`;
+    document.getElementById('search-total-play').innerText = `${currentUserRecords.length} PLAYS`;
+    
+    document.getElementById('search-user-flag').innerHTML = `
+        <img src="https://flagcdn.com/w40/${firstItem.region.toLowerCase()}.png" class="w-full h-full object-cover">
+    `;
+    
+    document.getElementById('search-profile-img').innerHTML = `
+        <img src="./heroes/${fileName}.webp" class="w-full h-full object-cover" style="object-position: center 20%; transform: scale(1.2);">
+    `;
+}
+
+/**
+ * 4. 기록 탭 렌더링 (전체 기록 나열)
+ */
+function renderSearchRecords() {
+    const container = document.getElementById('search-content-records');
+    const lang = localStorage.getItem('owlog_lang') || 'en';
+    container.innerHTML = '';
+
+    currentUserRecords.forEach((item, index) => {
+        // 기존 랭킹 카드 생성 함수(createDetailedRankCard)를 재사용하거나 유사하게 생성
+        const card = createDetailedRankCard(item, index + 1, lang);
+        container.appendChild(card);
+    });
+}
+
+/**
+ * 5. 캐릭터 요약 탭 렌더링 (통계)
+ */
+function renderSearchSummary() {
+    const container = document.getElementById('search-content-summary');
+    const lang = localStorage.getItem('owlog_lang') || 'en';
+    container.innerHTML = '';
+
+    // 캐릭터별 통계 계산
+    const stats = {};
+    currentUserRecords.forEach(item => {
+        if (!stats[item.character]) {
+            stats[item.character] = { count: 0, totalScore: 0, maxScore: 0, level: item.level };
+        }
+        const score = Number(item.totalScore);
+        stats[item.character].count++;
+        stats[item.character].totalScore += score;
+        if (score > stats[item.character].maxScore) stats[item.character].maxScore = score;
+    });
+
+    Object.keys(stats).forEach(charName => {
+        const s = stats[charName];
+        const avgScore = Math.round(s.totalScore / s.count);
+        const heroInfo = heroDataCache.characters.find(c => c.english_name === charName || c.korean_name === charName);
+        const displayName = heroInfo ? (lang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : charName;
+
+        const row = document.createElement('div');
+        row.className = "bg-white p-5 rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm";
+        row.innerHTML = `
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden">
+                    <img src="./heroes/${charName.replace(/\s+/g, '_')}.webp" class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <p class="font-black text-sm text-gray-800">${displayName}</p>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">${s.count} GAMES PLAYED</p>
+                </div>
+            </div>
+            <div class="flex gap-6 text-right">
+                <div>
+                    <p class="text-[9px] font-bold text-gray-400 uppercase">Best</p>
+                    <p class="text-xs font-black text-blue-600">${s.maxScore.toLocaleString()}</p>
+                </div>
+                <div>
+                    <p class="text-[9px] font-bold text-gray-400 uppercase">Avg</p>
+                    <p class="text-xs font-black text-gray-800">${avgScore.toLocaleString()}</p>
+                </div>
+            </div>
+        `;
+        container.appendChild(row);
+    });
+}
+
+function performUserSearch(query) {
+    if (!query) return;
+    const lang = localStorage.getItem('owlog_lang') || 'en';
+
+    // 데이터 필터링 (대소문자 구분 없음)
+    const userRecords = rankingDataCache.filter(item => 
+        item.userId.toLowerCase() === query.toLowerCase()
+    );
+
+    if (userRecords.length === 0) {
+        alert(lang === 'ko' ? "등록된 기록이 없는 유저입니다." : "No records found for this user.");
+        return;
+    }
+
+    // [핵심] 데이터 바인딩 전 로딩 뷰 숨기고 결과 뷰 보여주기
+    document.getElementById('search-loading-view').classList.add('hidden');
+    document.getElementById('search-results-view').classList.remove('hidden');
+    
+    // 전역 참조 변수에 데이터 저장 (정렬되지 않은 원본 순서 유지)
+    searchUserRecordsRef = [...userRecords];
+
+    // 섹션 전환
+    switchTab('search');
+
+    // 가장 많이 사용한 캐릭터 계산
+    const charCounts = {};
+    userRecords.forEach(r => charCounts[r.character] = (charCounts[r.character] || 0) + 1);
+    const mostPlayedChar = Object.keys(charCounts).reduce((a, b) => charCounts[a] > charCounts[b] ? a : b);
+    const heroInfo = heroDataCache.characters.find(c => c.english_name === mostPlayedChar || c.korean_name === mostPlayedChar);
+    const fileName = heroInfo ? heroInfo.english_name.replace(/\s+/g, '_') : 'Hero';
+
+    // 최신 시간 (G열) 가져오기
+    const latestRecord = userRecords[userRecords.length - 1]; 
+
+    // 프로필 UI 업데이트
+    document.getElementById('search-user-id').innerText = query;
+    document.getElementById('search-user-region').innerText = latestRecord.region;
+    document.getElementById('search-total-play').innerText = userRecords.length;
+    document.getElementById('search-last-update').innerText = latestRecord.time; // 시트의 실제 시간
+    
+    document.getElementById('search-user-flag').innerHTML = `
+        <img src="https://flagcdn.com/w40/${latestRecord.region.toLowerCase()}.png" class="w-full h-full object-cover">
+    `;
+    document.getElementById('search-profile-img').innerHTML = `
+        <img src="./heroes/${fileName}.webp" class="w-full h-full object-cover" style="transform: scale(1.4); object-position: center 10%;">
+    `;
+
+    // 기본 탭인 '기록' 표시 실행
+    switchSearchTab('records');
+}
+/**
+ * 검색 결과 페이지 내 탭 전환 (기록 <-> 요약)
+ */
+function switchSearchTab(type) {
+    const recCont = document.getElementById('search-content-records');
+    const sumCont = document.getElementById('search-content-summary');
+    const recBtn = document.getElementById('search-tab-records');
+    const sumBtn = document.getElementById('search-tab-summary');
+    const lang = localStorage.getItem('owlog_lang') || 'en';
+
+    if (!recCont || !sumCont) return;
+
+    // [핵심] 전환 시 두 컨테이너의 내용을 즉시 비워 잔상을 제거합니다.
+    recCont.innerHTML = '';
+    sumCont.innerHTML = '';
+
+    if (type === 'records') {
+        // 기록 탭 활성화
+        recCont.style.display = ''; // 인라인 스타일 제거 (CSS 클래스 적용)
+        recCont.classList.remove('hidden');
+        sumCont.classList.add('hidden');
+        sumCont.style.display = 'none'; // 강제 숨김
+
+        // 버튼 스타일 (Home 탭과 동일한 로직)
+        recBtn.classList.add('tab-active');
+        recBtn.classList.remove('text-gray-400', 'font-medium');
+        sumBtn.classList.remove('tab-active');
+        sumBtn.classList.add('text-gray-400', 'font-medium');
+
+        // 기록 데이터 렌더링 (최고 점수 순 정렬)
+        const sortedRecords = [...searchUserRecordsRef].sort((a, b) => Number(b.totalScore) - Number(a.totalScore));
+        sortedRecords.forEach((item, idx) => {
+            const card = createDetailedRankCard(item, idx + 1, lang);
+            recCont.appendChild(card);
+        });
+    } else {
+        // 요약 탭 활성화
+        sumCont.style.display = 'block'; // 요약 탭은 일반 블록 표시
+        sumCont.classList.remove('hidden');
+        recCont.classList.add('hidden');
+        recCont.style.display = 'none'; // 기록 탭 강제 숨김
+
+        // 버튼 스타일
+        sumBtn.classList.add('tab-active');
+        sumBtn.classList.remove('text-gray-400', 'font-medium');
+        recBtn.classList.remove('tab-active');
+        recBtn.classList.add('text-gray-400', 'font-medium');
+
+        // 캐릭터 통계 요약 렌더링
+        renderSummaryStats(sumCont, lang);
+    }
+}
+/**
+ * 검색 결과 탭 콘텐츠 렌더링
+ */
+let searchUserRecordsRef = []; // 참조 저장용
+function renderSearchContent(records) {
+    searchUserRecordsRef = records;
+}
+
+/**
+ * 캐릭터 요약 통계 출력 (다국어 라벨 적용)
+ */
+function renderSummaryStats(container, lang) {
+    const stats = {};
+    searchUserRecordsRef.forEach(item => {
+        if (!stats[item.character]) stats[item.character] = { count: 0, max: 0, total: 0 };
+        const score = Number(item.totalScore);
+        stats[item.character].count++;
+        stats[item.character].total += score;
+        if (score > stats[item.character].max) stats[item.character].max = score;
+    });
+
+    container.innerHTML = '';
+
+    // idle.json에서 라벨 가져오기 (기본값 설정)
+    const labelGames = lang === 'ko' ? '판 플레이' : 'GAMES';
+    const labelBest = translations[lang]['label_best'] || 'Best';
+    const labelAvg = translations[lang]['label_avg'] || 'Average';
+
+    Object.keys(stats).forEach(charName => {
+        const s = stats[charName];
+        const heroInfo = heroDataCache.characters.find(c => c.english_name === charName || c.korean_name === charName);
+        const displayName = heroInfo ? (lang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : charName;
+        const fileName = (heroInfo ? heroInfo.english_name : charName).replace(/\s+/g, '_');
+
+        const row = document.createElement('div');
+        row.className = "bg-gray-50 p-5 rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm";
+        row.innerHTML = `
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-xl bg-white border border-gray-100 overflow-hidden flex-shrink-0 relative">
+                    <img src="./heroes/${fileName}.webp" class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <p class="font-black text-sm text-gray-800">${displayName}</p>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">${s.count} ${labelGames}</p>
+                </div>
+            </div>
+            <div class="flex gap-6 md:gap-10 text-right">
+                <div>
+                    <p class="text-[9px] font-bold text-gray-400 uppercase mb-0.5">${labelBest}</p>
+                    <p class="text-sm font-black text-blue-500">${s.max.toLocaleString()}</p>
+                </div>
+                <div>
+                    <p class="text-[9px] font-bold text-gray-400 uppercase mb-0.5">${labelAvg}</p>
+                    <p class="text-sm font-black text-gray-900">${Math.round(s.total/s.count).toLocaleString()}</p>
+                </div>
+            </div>
+        `;
+        container.appendChild(row);
+    });
+}
+
+/**
+ * 1. 특정 유저 페이지로 즉시 점프 (로딩 뷰 노출)
+ */
+function handleDirectJump(userId) {
+    // 즉시 검색 섹션 활성화 (이때 index.html에 설정된 loading-view가 기본으로 보임)
+    switchTab('search');
+    
+    // 로딩 상태 강제 리셋 (결과 뷰 숨기고 로딩 뷰 보여주기)
+    document.getElementById('search-loading-view').classList.remove('hidden');
+    document.getElementById('search-results-view').classList.add('hidden');
+
+    const syncCheck = setInterval(() => {
+        if (typeof rankingDataCache !== 'undefined' && rankingDataCache.length > 0 && typeof heroDataCache !== 'undefined') {
+            clearInterval(syncCheck);
+            performUserSearch(userId); // 데이터 준비 완료 시 호출
+        }
+    }, 300);
+}
+
+
+/**
+ * 검색 결과 페이지 내 버튼 기능 활성화 (새로고침 & 공유)
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    const refreshBtn = document.getElementById('btn-refresh-data');
+    const shareBtn = document.getElementById('btn-share-profile');
+
+    // 1. 새로고침 버튼 클릭 시
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async () => {
+            const userId = document.getElementById('search-user-id').innerText;
+            if (!userId || userId === '---') return;
+
+            // 로딩 뷰로 전환 (애니메이션 노출)
+            document.getElementById('search-loading-view').classList.remove('hidden');
+            document.getElementById('search-results-view').classList.add('hidden');
+
+            try {
+                // 스프레드시트 데이터 다시 불러오기 (기존 loadRanking 함수 호출)
+                await loadRanking(); 
+                
+                // 데이터 로드 완료 후 다시 검색 결과 반영
+                performUserSearch(userId);
+            } catch (error) {
+                console.error("Data sync failed:", error);
+                // 에러 시 다시 결과 화면은 보여줌
+                document.getElementById('search-loading-view').classList.add('hidden');
+                document.getElementById('search-results-view').classList.remove('hidden');
+            }
+        });
+    }
+
+    // 2. 공유 버튼 클릭 시
+    if (shareBtn) {
+        shareBtn.addEventListener('click', () => {
+            const userId = document.getElementById('search-user-id').innerText;
+            if (!userId || userId === '---') return;
+
+            const lang = localStorage.getItem('owlog_lang') || 'en';
+            
+            // 공유용 URL 생성 (한글 닉네임 대응을 위해 encodeURIComponent 사용)
+            const shareUrl = `https://owlog.xyz/?id=${encodeURIComponent(userId)}`;
+
+            // 클립보드 복사 실행
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                // 복사 완료 알림 (alert 대신 커스텀 토스트가 있다면 교체 가능)
+                const msg = lang === 'ko' 
+                    ? "프로필 주소가 복사되었습니다!" 
+                    : "Profile link copied to clipboard!";
+                alert(msg);
+            }).catch(err => {
+                console.error('Share failed:', err);
+            });
+        });
+    }
+});
