@@ -147,14 +147,14 @@ function initRegionSelect(lang = 'en') {
     isoCodes.forEach(code => {
         const option = document.createElement('option');
         option.value = code;
-        
+
         try {
             // KR -> "대한민국", US -> "미국" 등으로 변환
-            option.text = regionNames.of(code); 
+            option.text = regionNames.of(code);
         } catch (e) {
             option.text = code.toUpperCase(); // 변환 실패 시 코드 표시
         }
-        
+
         regionSelect.add(option);
     });
 
@@ -436,11 +436,12 @@ function renderRankingSlide() {
     const lang = localStorage.getItem('owlog_lang') || 'en';
     const container = document.getElementById('content-ranking');
     if (!container || !rankingDataCache.length || !heroDataCache) return;
+    // [수정] 전체 캐시에서 유저별 최고 기록만 뽑아서 슬라이드 구성
+    const bestData = getBestRecordsPerUser(rankingDataCache);
 
-    const itemsPerPage = getItemsPerPage(); // 현재 화면 크기에 따른 개수 (5 또는 10)
+    const itemsPerPage = getItemsPerPage();
     const startIndex = currentRankingPage * itemsPerPage;
-    const slideData = rankingDataCache.slice(startIndex, startIndex + itemsPerPage);
-
+    const slideData = bestData.slice(startIndex, startIndex + itemsPerPage)
     // 더 이상 보여줄 데이터가 없으면 1위로 리셋
     if (slideData.length === 0 || startIndex >= 15) {
         currentRankingPage = 0;
@@ -558,11 +559,9 @@ function startRankingRotation() {
     if (rankingTimeout) clearTimeout(rankingTimeout);
     currentRankingPage = 0;
     renderRankingSlide(); // 첫 실행 (이 안에서 setTimeout으로 다음 루프가 예약됨)
-}/**
- * OWLOG - 실시간 랭킹 로드 (레벨 -> 점수 -> 시간 순 정렬)
- */
+}
 /**
- * OWLOG - 실시간 랭킹 로드 (중복 제거 및 다중 정렬 적용)
+ * OWLOG - 실시간 랭킹 로드 (유저별 최고 기록 1개만 추출)
  */
 async function loadRanking() {
     const container = document.getElementById('content-ranking');
@@ -577,40 +576,35 @@ async function loadRanking() {
         let rawData = await rankingRes.json();
         heroDataCache = await heroRes.json();
 
-        if (!rawData || rawData.length === 0) {
-            container.innerHTML = `<p class="text-center py-10 text-gray-400 text-xs">No records found.</p>`;
-            return;
-        }
+        if (!rawData || rawData.length === 0) return;
 
-        // [1] 중복 데이터 제거 로직 (이름/지역/캐릭터/시간/레벨/점수 모두 일치 시)
+        // [1] 유저별 최고 기록 선별 (레벨 내림차순 -> 시간 오름차순)
+        const bestPerUser = rawData.sort((a, b) => {
+            const lvA = parseInt(String(a.level || 0).replace(/[^0-9]/g, '')) || 0;
+            const lvB = parseInt(String(b.level || 0).replace(/[^0-9]/g, '')) || 0;
+            if (lvB !== lvA) return lvB - lvA; // 최고 레벨 우선
+            return String(a.time || "").localeCompare(String(b.time || "")); // 최단 시간 우선
+        }).filter((item, index, self) =>
+            // 정렬된 상태에서 닉네임이 처음 등장하는 데이터(최고 기록)만 유지
+            index === self.findIndex((t) => t.userId === item.userId)
+        );
+
+        // 1. 완전히 동일한 데이터만 제거 (전체 데이터 보존)
         const uniqueData = rawData.filter((item, index, self) =>
             index === self.findIndex((t) => (
-                t.userId === item.userId &&
-                t.region === item.region &&
-                t.character === item.character &&
-                t.time === item.time &&
-                t.level === item.level &&
-                t.totalScore === item.totalScore
+                t.userId === item.userId && t.region === item.region &&
+                t.character === item.character && t.time === item.time &&
+                t.level === item.level && t.totalScore === item.totalScore
             ))
         );
 
-        // [2] 다중 정렬 로직 적용
-        rankingDataCache = uniqueData.sort((a, b) => {
-            // 1순위: 고통 레벨 (내림차순)
-            const levelA = parseInt(String(a.level || 0).replace(/[^0-9]/g, '')) || 0;
-            const levelB = parseInt(String(b.level || 0).replace(/[^0-9]/g, '')) || 0;
-            if (levelB !== levelA) return levelB - levelA;
-
-            return String(a.time || "").localeCompare(String(b.time || ""));
-        });
-
-        // 정렬된 데이터로 로테이션 시작
+        // 2. 전체 데이터를 캐시에 저장 (검색 탭에서 전체 사용 가능)
+        rankingDataCache = uniqueData;
         startRankingRotation();
     } catch (error) {
         console.error("Ranking Load Error:", error);
     }
 }
-
 /**
  * 상세 랭킹 전용 상태 변수
  */
@@ -666,32 +660,33 @@ async function initDetailedRankPage() {
     isoCodes.forEach(code => {
         const opt = document.createElement('option');
         opt.value = code;
-        
+
         try {
             // "KR" -> "대한민국" 등으로 변환하여 표시
-            opt.text = regionNames.of(code); 
+            opt.text = regionNames.of(code);
         } catch (e) {
             opt.text = code.toUpperCase();
         }
-        
+
         regionSelect.add(opt);
     });
-    
+
     regionSelect.value = currentRegion;
     handleRankFilterChange();
 }
 
 /**
- * 필터 변경 핸들러
+ * 상세 랭킹 필터 변경 핸들러 (유저별 최고 기록 1개 제한 적용)
  */
 function handleRankFilterChange() {
     const heroVal = document.getElementById('detailed-filter-hero').value;
     const levelVal = document.getElementById('detailed-filter-level').value;
-    const regionVal = document.getElementById('detailed-filter-region').value; // 국가 선택값
+    const regionVal = document.getElementById('detailed-filter-region').value;
 
     const selectedHeroInfo = heroDataCache ? heroDataCache.characters.find(c => c.english_name === heroVal) : null;
 
-    detailedRankData = rankingDataCache.filter(item => {
+    // 1. 조건(영웅, 레벨, 국가)에 맞는 모든 데이터를 먼저 필터링하여 임시 변수에 담습니다.
+    const filteredResult = rankingDataCache.filter(item => {
         // 영웅 체크
         let matchHero = true;
         if (heroVal && selectedHeroInfo) {
@@ -705,6 +700,11 @@ function handleRankFilterChange() {
         return matchHero && matchLevel && matchRegion;
     });
 
+    // 2. [핵심 수정] 필터링된 결과물에서 유저별 최고 기록만 1개씩 추출합니다.
+    // 이전에 정의한 getBestRecordsPerUser 함수를 사용합니다.
+    detailedRankData = getBestRecordsPerUser(filteredResult);
+
+    // 3. 페이지 초기화 및 리스트 렌더링
     detailedCurrentPage = 1;
     renderDetailedRankList();
 }
@@ -964,7 +964,7 @@ function performUserSearch(query) {
     document.getElementById('search-user-id').innerText = query;
     document.getElementById('search-user-region').innerText = topRecord.region;
     document.getElementById('search-total-play').innerText = userRecords.length;
-    
+
     // [변경] 기존 label(Last) 아래에 최고 기록(Lv.XX | 00:00)을 출력
     document.getElementById('search-last-update').innerText = `${topRecord.time}`;
 
@@ -1247,38 +1247,55 @@ function triggerScanner() {
     }
 }
 
+/**
+ * 데이터 리스트에서 유저별 최고 기록(레벨 > 시간) 1개씩만 추출
+ */
+function getBestRecordsPerUser(data) {
+    if (!data || data.length === 0) return [];
 
+    return [...data].sort((a, b) => {
+        const lvA = parseInt(String(a.level || 0).replace(/[^0-9]/g, '')) || 0;
+        const lvB = parseInt(String(b.level || 0).replace(/[^0-9]/g, '')) || 0;
+        if (lvB !== lvA) return lvB - lvA; // 최고 레벨 우선
+        return String(a.time || "").localeCompare(String(b.time || "")); // 최단 시간 우선
+    }).filter((item, index, self) =>
+        index === self.findIndex((t) => t.userId === item.userId) // 첫 번째(최고) 기록만 유지
+    );
+}
+/**
+ * OWLOG - 상세 랭킹 데이터 로드 (유저당 1개 레코드 제한)
+ */
 async function loadMainRanking() {
     const loader = document.getElementById('rank-main-loader');
     const content = document.getElementById('rank-main-content');
 
-    // 1. 데이터 로드 시작: 로더 보이기, 컨텐츠 숨기기
-    if (loader) loader.classList.remove('hidden');
-    if (content) content.classList.add('hidden');
+    if (!loader || !content) return;
+    loader.classList.remove('hidden');
+    content.classList.add('hidden');
 
     try {
         const response = await fetch(GAS_URL);
-        const data = await response.json();
+        let data = await response.json();
 
-        // [정렬 로직] 레벨 -> 점수 순 (기존 로직 사용)
-        const sortedData = data.sort((a, b) => {
+        // [핵심] 유저별 최고 기록만 남기기
+        const bestData = data.sort((a, b) => {
             const lvA = parseInt(String(a.level || 0).replace(/[^0-9]/g, '')) || 0;
             const lvB = parseInt(String(b.level || 0).replace(/[^0-9]/g, '')) || 0;
             if (lvB !== lvA) return lvB - lvA;
-            return (Number(b.totalScore) || 0) - (Number(a.totalScore) || 0);
-        });
+            return String(a.time || "").localeCompare(String(b.time || ""));
+        }).filter((item, index, self) =>
+            index === self.findIndex((t) => t.userId === item.userId)
+        );
 
-        // 2. 렌더링 실행
+        // 렌더링 호출
         if (typeof renderDetailedRankList === 'function') {
-            renderDetailedRankList(sortedData);
+            renderDetailedRankList(bestData);
         }
 
-        // 3. 로딩 완료: 로더 숨기기, 컨텐츠 보이기
-        if (loader) loader.classList.add('hidden');
-        if (content) content.classList.remove('hidden');
-
+        loader.classList.add('hidden');
+        content.classList.remove('hidden');
     } catch (error) {
         console.error("Load Error:", error);
-        if (loader) loader.innerHTML = `<p class="text-[10px] font-bold text-red-400">FAILED TO SYNC DATABASE</p>`;
+        loader.innerHTML = `<p class="text-xs font-bold text-red-400">FAILED TO SYNC DATABASE</p>`;
     }
 }
