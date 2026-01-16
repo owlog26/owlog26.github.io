@@ -80,32 +80,39 @@
             background-color: #f9fafb !important;
             /* gray-50 */
         }
+
         /* 국가 선택창 너비 고정 및 말줄임표 설정 */
-    #userRegion {
-        max-width: 110px; /* 너비 고정 */
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        overflow: hidden;
-        display: inline-block;
-    }
-    
-    /* 드롭다운 내부 옵션들도 브라우저 지원에 따라 말줄임 적용 시도 */
-    #userRegion option {
-        text-overflow: ellipsis;
-        overflow: hidden;
-    }
+        #userRegion {
+            max-width: 110px;
+            /* 너비 고정 */
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        /* 드롭다운 내부 옵션들도 브라우저 지원에 따라 말줄임 적용 시도 */
+        #userRegion option {
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
     </style>
 </head>
 
 <body class="min-h-screen flex flex-col pb-20">
 
     <header class="flex justify-between items-center px-4 py-3 border-b border-gray-100 bg-white sticky top-0 z-50">
-        <button onclick="openScanner()"
+        <button id="header-action-btn" onclick="openScanner()"
             class="w-10 h-10 flex items-center justify-center hover:bg-gray-50 rounded-full transition-all active:scale-90"
             aria-label="Add Record">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-900" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2.5">
+            <svg id="header-svg-plus" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-900" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+
+            <svg id="header-svg-back" xmlns="http://www.w3.org/2000/svg" class="hidden w-6 h-6 text-gray-900"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
             </svg>
         </button>
         <div class="flex items-center gap-1.5 cursor-pointer" onclick="switchTab('home')">

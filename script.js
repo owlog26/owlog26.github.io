@@ -324,7 +324,7 @@ function switchTab(tab) {
     const sectionHome = document.getElementById('section-home');
     const sectionRank = document.getElementById('section-ranking');
     const sectionGuide = document.getElementById('section-guide');
-    const sectionSearch = document.getElementById('section-search'); // 추가
+    const sectionSearch = document.getElementById('section-search');
 
     const navs = {
         home: document.getElementById('nav-home'),
@@ -332,35 +332,54 @@ function switchTab(tab) {
         guide: document.getElementById('nav-guide')
     };
 
+    // 상단 액션 버튼 가져오기
+    const actionBtn = document.getElementById('header-action-btn');
+
     // 모든 섹션 숨기기 & 아이콘 초기화
     [sectionHome, sectionRank, sectionGuide, sectionSearch].forEach(el => el?.classList.add('hidden'));
     Object.values(navs).forEach(el => {
         if (el) { el.classList.remove('text-black'); el.classList.add('text-gray-300'); }
     });
 
+    // --- 상단 버튼 동적 변경 로직 추가 ---
+    if (actionBtn) {
+        if (tab === 'search') {
+            // 프로필 탭일 때: 뒤로가기 아이콘 및 홈 이동 기능
+            actionBtn.onclick = () => goBackToHome();
+            actionBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>`;
+        } else {
+            // 다른 탭일 때: 플러스 아이콘 및 스캐너 기능 복구
+            actionBtn.onclick = () => openScanner();
+            actionBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>`;
+        }
+    }
+    // ------------------------------------
+
     if (tab === 'ranking') {
-        sectionRank.classList.remove('hidden');
+        sectionRank?.classList.remove('hidden');
         if (navs.rank) navs.rank.classList.replace('text-gray-300', 'text-black');
         loadMainRanking();
         initDetailedRankPage();
-
     }
     if (tab === 'guide') {
-        sectionGuide.classList.remove('hidden');
+        sectionGuide?.classList.remove('hidden');
         if (navs.guide) navs.guide.classList.replace('text-gray-300', 'text-black');
     }
     if (tab === 'home') {
-        sectionHome.classList.remove('hidden');
-        navs.home.classList.replace('text-gray-300', 'text-black');
+        sectionHome?.classList.remove('hidden');
+        if (navs.home) navs.home.classList.replace('text-gray-300', 'text-black');
         switchHomeTab('ranking');
     } else if (tab === 'search') {
-        // 검색 결과 탭 활성화 (검색은 하단 nav가 없으므로 아이콘 활성화 생략)
-        sectionSearch.classList.remove('hidden');
+        sectionSearch?.classList.remove('hidden');
         if (rankingTimeout) { clearTimeout(rankingTimeout); rankingTimeout = null; }
     } else {
-        // 홈이 아닌 탭 공통 로직
         if (rankingTimeout) { clearTimeout(rankingTimeout); rankingTimeout = null; }
-
     }
     window.scrollTo(0, 0);
 }
@@ -520,7 +539,10 @@ function renderRankingSlide() {
                  class="w-full h-full object-cover shadow-inner" 
                  title="${item.region}">
         </div>
-                        <span class="font-bold text-sm md:text-base leading-none text-gray-800">${item.userId}</span>
+                       <span class="font-bold text-sm md:text-base leading-none text-gray-800 cursor-pointer" 
+                      onclick="handleDirectJump('${item.userId}')">
+                    ${item.userId}
+                </span>
                     </div>
                     <span class="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mt-0.5">${displayName}</span>
                 </div>
@@ -776,7 +798,10 @@ function createDetailedRankCard(item, rank, lang) {
                 <span class="absolute right-0 bottom-0 bg-red-500 text-[8px] text-white px-1 font-bold">Lv.${item.level}</span>
             </div>
             <div class="flex flex-col">
-                <span class="font-bold text-sm md:text-base text-gray-800 leading-none">${item.userId}</span>
+                <span class="font-bold text-sm md:text-base text-gray-800 leading-none cursor-pointer" 
+                  onclick="handleDirectJump('${item.userId}')">
+                ${item.userId}
+            </span>
                 <span class="text-[10px] font-bold text-gray-400 uppercase mt-1">${displayName}</span>
             </div>
         </div>
@@ -1298,4 +1323,19 @@ async function loadMainRanking() {
         console.error("Load Error:", error);
         loader.innerHTML = `<p class="text-xs font-bold text-red-400">FAILED TO SYNC DATABASE</p>`;
     }
+}
+/**
+ * [script.js] 프로필에서 홈으로 돌아가기
+ */
+function goBackToHome() {
+    // 1. 메인 탭을 홈으로 전환합니다.
+    switchTab('home');
+    
+    // 2. URL 파라미터가 있다면 제거하여 깨끗한 상태로 만듭니다 (선택 사항)
+    if (window.location.search.includes('id=')) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
+    // 3. 페이지 상단으로 스크롤 이동
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }

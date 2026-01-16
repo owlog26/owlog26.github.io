@@ -50,7 +50,8 @@
     "label_score": "최종 점수",
     "btn_save": "기록 저장하기",
     "msg_save_ok": "기록이 분석되었습니다!",
-    "msg_scan_first": "데이터를 먼저 스캔해주세요."
+    "msg_scan_first": "데이터를 먼저 스캔해주세요.",
+    "btn_back": "< 돌아가기"
   },
   "en": {
      "how_to_register": "How to Register",
