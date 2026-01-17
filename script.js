@@ -2038,14 +2038,21 @@ function openCropModal(imageSrc, callback) {
     });
 }
 
-// 크랍 확정 버튼 클릭 시 호출 (index.html의 onclick="confirmCrop()"과 연결)
+// script.js 내의 함수 수정
 function confirmCrop() {
     if (!cropper || !currentCropCallback) return;
 
-    // 크랍된 영역을 캔버스로 가져옴
+    // 1. 크랍된 영역 가져오기
     const canvas = cropper.getCroppedCanvas();
-    currentCropCallback(canvas); // sk_scanner.js의 confirmSKCrop 실행
+    
+    // 2. 모달 닫기 (추가됨)
+    // 여기서 닫아주면 어떤 스캐너를 쓰든 크랍 확인 시 모달이 즉시 닫힙니다.
+    closeCropModal(); 
+
+    // 3. 예약된 분석 함수(runMainScan 또는 confirmSKCrop) 실행
+    currentCropCallback(canvas); 
 }
+
 
 // 모달 닫기
 function closeCropModal() {
