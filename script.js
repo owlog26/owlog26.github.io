@@ -1936,7 +1936,7 @@ function renderSKRankingSlide() {
     const bestData = getBestRecordsPerUser(rankingDataCache);
     const skTop6 = bestData.filter(item =>
         item.mode && item.mode.trim().toUpperCase() === 'SK'
-    ).slice(0, 12);
+    ).slice(0, 22);
 
     // 데이터가 없을 경우 안내 문구 출력
     if (skTop6.length === 0) {
