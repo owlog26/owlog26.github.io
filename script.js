@@ -328,8 +328,10 @@ function renderRankingSlide() {
             let imageScale = "scale(1.3)";
             if (englishName === "Alessia") objectPosition = "center 40%";
             if (englishName === "Yoiko") { objectPosition = "center 10%"; imageScale = "scale(1.8) translateX(-5px)"; }
-            else if (englishName === "Vesper") { objectPosition = "center 30%"; imageScale = "scale(1.7)"; }
-            else if (englishName === "Jadetalon") { objectPosition = "center -20%"; imageScale = "scale(2) translateX(10px)"; }
+            if (englishName === "Vesper") { objectPosition = "center 30%"; imageScale = "scale(1.7)"; }
+            if (englishName === "Jadetalon") { objectPosition = "center -20%"; imageScale = "scale(2) translateX(10px)"; }
+            if (englishName === "Adelvyn") { objectPosition = "center 30%"; imageScale = "scale(1.3) translateX(-10px)"; }
+            if (englishName === "Peddler") { objectPosition = "center 10%"; imageScale = "scale(1)  translateX(10px)"; }
 
             const card = document.createElement('div');
             card.className = "flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm transition-all duration-500 hover:shadow-md";
@@ -586,8 +588,11 @@ function renderRankingSlide() {
             let imageScale = "scale(1.3)";
             if (englishName === "Alessia") objectPosition = "center 40%";
             if (englishName === "Yoiko") { objectPosition = "center 10%"; imageScale = "scale(1.8) translateX(-5px)"; }
-            else if (englishName === "Vesper") { objectPosition = "center 30%"; imageScale = "scale(1.7)"; }
-            else if (englishName === "Jadetalon") { objectPosition = "center -20%"; imageScale = "scale(2) translateX(10px)"; }
+            if (englishName === "Vesper") { objectPosition = "center 30%"; imageScale = "scale(1.7)"; }
+            if (englishName === "Jadetalon") { objectPosition = "center -20%"; imageScale = "scale(2) translateX(10px)"; }
+            if (englishName === "Adelvyn") { objectPosition = "center 30%"; imageScale = "scale(1.3) translateX(-10px)"; }
+            if (englishName === "Peddler") { objectPosition = "center 10%"; imageScale = "scale(1)  translateX(5px)"; }
+
 
             const card = document.createElement('div');
             card.className = "flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm transition-all duration-500 hover:shadow-md";
@@ -886,6 +891,8 @@ function createDetailedRankCard(item, rank, lang) {
     if (englishName === "Zilan") { objPos = "center 30%"; transform = ""; }
     if (englishName === "Synthia") { objPos = "center 20%"; transform = "scale(1.5) translateX(-15px)"; }
     if (englishName === "Anibella") { objPos = "center 10%"; transform = "scale(1.5)"; }
+            if (englishName === "Adelvyn") { objectPosition = "center 30%"; imageScale = "scale(1.3) translateX(-10px)"; }
+            if (englishName === "Peddler") { objectPosition = "center 10%"; imageScale = "scale(1)  translateX(10px)"; }
 
 
     const card = document.createElement('div');
