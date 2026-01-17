@@ -78,9 +78,7 @@ async function checkCharacterName(img, worker, lang) {
     });
     return match;
 }
-/**
- * OWLOG - OCR 스캐너 엔진 (초기 안정 좌표계 복구 및 기능 통합)
- */
+
 /**
  * OWLOG - OCR 스캐너 엔진 (사용자 지정 '니' 매핑 반영 버전)
  */
@@ -164,7 +162,7 @@ async function runMainScan(img) {
          */
         const extractLastNumber = (text, defaultVal) => {
             // 텍스트 전처리: '니', 'y', ':' 등을 '4'로 변경
-            let cleanedText = text.replace(/[니yY:]/g, '4');
+            let cleanedText = text.replace(/[니ㄴyY:]|L\]/g, '4');
             
             const nums = cleanedText.match(/\d+/g);
             if (!nums) return defaultVal;
@@ -225,9 +223,7 @@ async function runMainScan(img) {
         await worker.terminate();
     }
 }
-/**
- * 4. 이미지 크로퍼 및 유틸리티
- */
+
 imageInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;

@@ -509,8 +509,8 @@ function renderRankingSlide() {
 
     const bestData = getBestRecordsPerUser(rankingDataCache);
 
-    const classicTop5 = bestData.filter(item => item.mode === 'Classic').slice(0, 5);
-    const riftTop5 = bestData.filter(item => item.mode === 'Rift').slice(0, 5);
+    const classicTop5 = bestData.filter(item => item.mode === 'Classic').slice(0, 6);
+    const riftTop5 = bestData.filter(item => item.mode === 'Rift').slice(0, 6);
 
     container.innerHTML = '';
     container.className = "mt-4 space-y-8 md:col-span-2"; 
@@ -1469,4 +1469,86 @@ async function selectMode(game, mode) {
     }
 
     if (typeof updateContent === 'function') updateContent();
+}
+
+
+/**
+ * OWLOG - 데이터 저장 로직 (최종본)
+ * 1. 공간의 틈새: 3단계 이상만 저장 가능, 모드명 'Classic'
+ * 2. 균열: 단계 1로 고정, 모드명 'Rift'
+ */
+async function saveRecord(event) {
+    if (event) event.preventDefault();
+
+    const lang = localStorage.getItem('owlog_lang') || 'ko';
+    const saveBtn = document.getElementById('saveBtn');
+    const originalText = saveBtn.innerText;
+
+    // [1] 현재 선택된 모드 및 스캔 데이터 가져오기
+    const mode = currentEntry.mode; // 'fissure' 또는 'rift'
+    const scannedStage = parseInt(lastScannedData.stage) || 1;
+
+    // [2] 유효성 검사: 공간의 틈새 모드일 때 3단계 미만 저장 차단
+    if (mode === 'fissure' && scannedStage < 3) {
+        const msg = lang === 'ko' 
+            ? "공간의 틈새는 3단계 이상 기록만 저장할 수 있습니다." 
+            : "Spatial Interstice records require Stage 3 or higher.";
+        alert(msg);
+        return;
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.innerText = lang === 'ko' ? "저장 중..." : "Saving...";
+
+    try {
+        const nickname = document.getElementById('userNickname').value.trim();
+        const region = document.getElementById('userRegion').value;
+        const charName = document.getElementById('resName').value;
+
+        // 닉네임이 비어있는지 확인
+        if (!nickname) {
+            alert(lang === 'ko' ? "닉네임을 입력해주세요." : "Please enter a nickname.");
+            saveBtn.disabled = false;
+            saveBtn.innerText = originalText;
+            return;
+        }
+
+        // [3] 페이로드 구성 (H열: stage, I열: mode)
+        const payload = {
+            userId: nickname,
+            region: region,
+            character: charName,
+            time: `'${lastScannedData.time}`,
+            level: lastScannedData.level,
+            totalScore: lastScannedData.totalScore,
+            // 균열(rift)인 경우 단계를 1로 고정, 아니면 스캔된 단계 사용
+            stage: mode === 'rift' ? 1 : scannedStage, 
+            // 시트 저장용 모드 이름 매핑
+            mode: mode === 'fissure' ? 'Classic' : 'Rift' 
+        };
+
+        await fetch(GAS_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            cache: 'no-cache',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        alert(lang === 'ko' ? "기록이 성공적으로 저장되었습니다!" : "Record saved successfully!");
+        location.reload(); 
+
+    } catch (error) {
+        // GAS 특유의 응답 에러 핸들링
+        if (error.message === "Failed to fetch" || error.name === "TypeError") {
+            alert(lang === 'ko' ? "기록이 성공적으로 저장되었습니다!" : "Record saved successfully!");
+            location.reload(); 
+        } else {
+            console.error("Save Error:", error);
+            alert(lang === 'ko' ? "저장 중 에러가 발생했습니다." : "An error occurred while saving.");
+        }
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerText = originalText;
+    }
 }
