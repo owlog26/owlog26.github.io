@@ -1,6 +1,7 @@
 /**
  * OWLOG - script.js
  */
+let currentModeTab = "Rift"; // 기본값 설정
 let translations = {};
 // ISO 3166-1 alpha-2 전체 리스트 (US, KR 우선 배치 후 알파벳순)
 const isoCodes = [
@@ -128,6 +129,22 @@ async function changeLang(lang) {
         // 현재 활성화된 검색 탭 확인 후 재호출
         const isSummary = !document.getElementById('search-content-summary').classList.contains('hidden');
         switchSearchTab(isSummary ? 'summary' : 'records');
+    }
+    // 2. [추가] 스캐너 내 영웅 드롭다운 갱신 (scanner.js 함수 호출)
+    if (typeof initHeroSelect === 'function') {
+        const currentSelectedHero = document.getElementById('resName')?.value;
+        await initHeroSelect(lang, currentSelectedHero);
+    }
+
+    // 3. [추가] 상세 랭킹 페이지 필터 갱신 (선택된 섹션이 랭킹일 때)
+    const rankSection = document.getElementById('section-ranking');
+    if (rankSection && !rankSection.classList.contains('hidden')) {
+        await initDetailedRankPage(); // 여기서 히어로 필터가 한영에 맞게 다시 그려짐
+    }
+
+    // 4. [추가] 메인 화면 랭킹 슬라이드 즉시 갱신
+    if (typeof renderRankingSlide === 'function') {
+        renderRankingSlide();
     }
 }
 
@@ -632,9 +649,6 @@ function startRankingRotation() {
     renderRankingSlide(); // 첫 실행 (이 안에서 setTimeout으로 다음 루프가 예약됨)
 }
 /**
- * OWLOG - 실시간 랭킹 로드 (유저별 최고 기록 1개만 추출)
- */
-/**
  * OWLOG - 실시간 랭킹 로드 (정렬 우선순위: 레벨 > 단계 > 시간)
  */
 async function loadRanking() {
@@ -698,22 +712,34 @@ let detailedRankData = [];      // 필터링된 결과 저장용
 let detailedCurrentPage = 1;    // 현재 페이지
 const detailedItemsPerPage = 16; // 페이지당 표시 개수
 
-/**
- * 상세 랭킹 페이지 초기화
- */
 async function initDetailedRankPage() {
+    const modeSelect = document.getElementById('detailed-filter-mode'); // 모드 필터 추가
     const heroSelect = document.getElementById('detailed-filter-hero');
     const levelSelect = document.getElementById('detailed-filter-level');
-    const regionSelect = document.getElementById('detailed-filter-region'); // 국가 필터 요소
-    const lang = localStorage.getItem('owlog_lang') || 'en';
+    const regionSelect = document.getElementById('detailed-filter-region');
+    const lang = localStorage.getItem('owlog_lang') || 'ko';
 
-    // 데이터 로드 대기 (생략 - 기존 로직 유지)
+    // 데이터 로드 대기
     if (!rankingDataCache || rankingDataCache.length === 0 || !heroDataCache) {
         setTimeout(initDetailedRankPage, 500);
         return;
     }
 
-    // 1. 캐릭터 필터 옵션 (기존 로직 유지)
+    // 1. [추가] 모드 필터 옵션 번역 및 초기값 설정
+    if (modeSelect) {
+        // 이전 선택값 유지 (없으면 Classic)
+        const currentMode = modeSelect.value || "Classic";
+        
+        // 올모드 없이 두 가지만 존재하므로 index로 접근하여 번역 갱신
+        if (translations[lang]) {
+            modeSelect.options[0].text = translations[lang]['fissure'] || '공간의 틈새';
+            modeSelect.options[1].text = translations[lang]['rift'] || '균열';
+        }
+        
+        modeSelect.value = currentMode;
+    }
+
+    // 2. 캐릭터 필터 옵션 (기존 로직 유지)
     const currentHero = heroSelect.value;
     heroSelect.innerHTML = `<option value="">${translations[lang]['filter_all_heroes'] || 'All Heroes'}</option>`;
     heroDataCache.characters.forEach(hero => {
@@ -724,7 +750,7 @@ async function initDetailedRankPage() {
     });
     heroSelect.value = currentHero;
 
-    // 2. 레벨 필터 옵션 (번역 적용)
+    // 3. 레벨 필터 옵션 (번역 적용)
     const currentLevel = levelSelect.value;
     const levelLabel = translations[lang]['label_level'] || 'Anguish';
     levelSelect.innerHTML = `<option value="">${translations[lang]['filter_all_levels'] || 'All Levels'}</option>`;
@@ -736,63 +762,84 @@ async function initDetailedRankPage() {
     }
     levelSelect.value = currentLevel;
 
-    // 3. [수정] 국가 필터 옵션 생성 (국가명 표시 및 다국어 지원)
+    // 4. 국가 필터 옵션 생성
     const currentRegion = regionSelect.value;
     regionSelect.innerHTML = `<option value="">${translations[lang]['label_region'] || 'All Regions'}</option>`;
-
-    // 브라우저 내장 도구로 국가명 변환 설정
     const regionNames = new Intl.DisplayNames([lang], { type: 'region' });
 
     isoCodes.forEach(code => {
         const opt = document.createElement('option');
         opt.value = code;
-
         try {
-            // "KR" -> "대한민국" 등으로 변환하여 표시
             opt.text = regionNames.of(code);
         } catch (e) {
             opt.text = code.toUpperCase();
         }
-
         regionSelect.add(opt);
     });
-
     regionSelect.value = currentRegion;
+
+    // 최종 필터링 실행
     handleRankFilterChange();
 }
 
 /**
- * 상세 랭킹 필터 변경 핸들러 (유저별 최고 기록 1개 제한 적용)
+ * 상세 랭킹 페이지 - 필터링 및 데이터 갱신 로직 (전체)
+ * 탭으로 선택된 모드와 드롭다운 필터들을 조합하여 결과 출력
  */
 function handleRankFilterChange() {
+    // 1. 현재 선택된 모든 필터 값 가져오기
+    const modeVal = currentModeTab; // 탭 버튼 클릭 시 저장된 전역 변수 ("Classic" 또는 "Rift")
     const heroVal = document.getElementById('detailed-filter-hero').value;
     const levelVal = document.getElementById('detailed-filter-level').value;
     const regionVal = document.getElementById('detailed-filter-region').value;
 
+    // 히어로 데이터에서 현재 선택된 영웅의 정보 찾기 (영어/한국어 매칭용)
     const selectedHeroInfo = heroDataCache ? heroDataCache.characters.find(c => c.english_name === heroVal) : null;
 
-    // 1. 조건(영웅, 레벨, 국가)에 맞는 모든 데이터를 먼저 필터링하여 임시 변수에 담습니다.
+    // 2. 전체 데이터 캐시(rankingDataCache)에서 조건에 맞는 항목 필터링
     const filteredResult = rankingDataCache.filter(item => {
-        // 영웅 체크
+        /**
+         * [모드 필터링] 
+         * 탭에서 선택된 모드와 데이터의 mode 값이 일치해야 함
+         * 시트 데이터의 미세한 공백 차이를 방지하기 위해 trim() 적용
+         */
+        const itemMode = (item.mode || "").trim();
+        const matchMode = itemMode === modeVal;
+
+        // [영웅 필터링]
         let matchHero = true;
         if (heroVal && selectedHeroInfo) {
-            matchHero = (item.character === selectedHeroInfo.english_name || item.character === selectedHeroInfo.korean_name);
+            // 시트에 저장된 이름이 영문이거나 국문인 경우 모두 대응
+            matchHero = (item.character === selectedHeroInfo.english_name || 
+                         item.character === selectedHeroInfo.korean_name);
         }
-        // 레벨 체크
+
+        // [레벨 필터링] (고통 레벨)
         const matchLevel = !levelVal || String(item.level) === levelVal;
-        // 국가 체크
+
+        // [국가 필터링]
         const matchRegion = !regionVal || item.region === regionVal;
 
-        return matchHero && matchLevel && matchRegion;
+        // 모든 조건이 참일 때만 결과에 포함
+        return matchMode && matchHero && matchLevel && matchRegion;
     });
 
-    // 2. [핵심 수정] 필터링된 결과물에서 유저별 최고 기록만 1개씩 추출합니다.
-    // 이전에 정의한 getBestRecordsPerUser 함수를 사용합니다.
+    /**
+     * 3. 유저별 최고 기록 추출
+     * 필터링된 결과(특정 모드/영웅 등) 내에서 유저 한 명당 
+     * 가장 성적이 좋은 기록(레벨 > 단계 > 시간 순) 단 하나만 선별합니다.
+     */
     detailedRankData = getBestRecordsPerUser(filteredResult);
 
-    // 3. 페이지 초기화 및 리스트 렌더링
-    detailedCurrentPage = 1;
-    renderDetailedRankList();
+    /**
+     * 4. UI 갱신
+     * 리스트의 첫 페이지부터 보여주도록 설정하고 화면을 다시 그립니다.
+     */
+    detailedCurrentPage = 1; 
+    if (typeof renderDetailedRankList === 'function') {
+        renderDetailedRankList();
+    }
 }
 /**
  * 3. 리스트 렌더링 (15개씩 페이징)
@@ -1551,4 +1598,24 @@ async function saveRecord(event) {
         saveBtn.disabled = false;
         saveBtn.innerText = originalText;
     }
+}
+
+function switchModeTab(mode) {
+    currentModeTab = mode;
+
+    const classicBtn = document.getElementById('tab-classic');
+    const riftBtn = document.getElementById('tab-rift');
+
+    if (mode === 'Classic') {
+        // 클래식 활성화 스타일
+        classicBtn.className = "flex-1 py-3 text-sm font-bold rounded-xl transition-all bg-black text-white shadow-sm";
+        riftBtn.className = "flex-1 py-3 text-sm font-bold rounded-xl transition-all text-gray-500 hover:text-gray-700";
+    } else {
+        // 균열 활성화 스타일
+        classicBtn.className = "flex-1 py-3 text-sm font-bold rounded-xl transition-all text-gray-500 hover:text-gray-700";
+        riftBtn.className = "flex-1 py-3 text-sm font-bold rounded-xl transition-all bg-black text-white shadow-sm";
+    }
+
+    // 필터링 함수 호출
+    handleRankFilterChange();
 }
