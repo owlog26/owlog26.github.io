@@ -649,6 +649,56 @@ function startRankingRotation() {
     renderRankingSlide(); // 첫 실행 (이 안에서 setTimeout으로 다음 루프가 예약됨)
 }
 
+async function loadRanking() {
+    const container = document.getElementById('content-ranking');
+    if (!container) return;
+
+    try {
+        const [rankingRes, heroRes] = await Promise.all([
+            fetch(GAS_URL),
+            fetch('json/hero.json')
+        ]);
+
+        let rawData = await rankingRes.json();
+        heroDataCache = await heroRes.json();
+
+        if (!rawData || rawData.length === 0) return;
+
+    
+        rawData.sort((a, b) => {
+            // A. 고통 레벨 비교
+            const lvA = parseInt(String(a.level || 0).replace(/[^0-9]/g, '')) || 0;
+            const lvB = parseInt(String(b.level || 0).replace(/[^0-9]/g, '')) || 0;
+            if (lvB !== lvA) return lvB - lvA;
+
+            // B. 시간 비교 (데이터가 이미 07:31 형식이므로 직접 비교)
+            // localeCompare는 "07:41"이 "21:22"보다 작다고 판단하여 앞에 둡니다.
+            return String(a.time).localeCompare(String(b.time));
+        });
+
+        // 1. 유저별 + 모드별 최고 기록 선별
+        // (이미 정렬된 상태이므로 가장 먼저 걸러지는 것이 최단 시간 기록임)
+        const bestPerUser = rawData.filter((item, index, self) =>
+            index === self.findIndex((t) => t.userId === item.userId && t.mode === item.mode)
+        );
+
+        // 2. 전체 데이터를 캐시에 저장 (중복 제거용)
+        rankingDataCache = rawData.filter((item, index, self) =>
+            index === self.findIndex((t) => (
+                t.userId === item.userId && t.region === item.region &&
+                t.character === item.character && t.time === item.time &&
+                t.level === item.level && t.totalScore === item.totalScore &&
+                t.stage === item.stage && t.mode === item.mode
+            ))
+        );
+
+        // 3. 화면 갱신
+        if (typeof renderRankingSlide === 'function') renderRankingSlide();
+
+    } catch (error) {
+        console.error("Ranking Load Error:", error);
+    }
+}
 /**
  * 상세 랭킹 전용 상태 변수
  */
@@ -1326,69 +1376,37 @@ function triggerScanner() {
         fileInput.click();
     }
 }
+
 /**
- * 1. 유저별 + 모드별 최고 기록 추출 (전체 정렬 로직 통합)
- * 우선순위: 고통 레벨(내림차순) > 시간(오름차순)
+ * 유저별 + 모드별 최고 기록 추출
+ * (우선순위: 레벨 > 단계 > 시간)
  */
 function getBestRecordsPerUser(data) {
     if (!data || data.length === 0) return [];
 
-    // 단계(Stage) 비교를 삭제하고 레벨과 시간으로만 정렬
+    // 1. 우선순위에 따라 전체 데이터 정렬
     const sortedData = [...data].sort((a, b) => {
-        // A. 고통 레벨 비교 (높은 레벨 우선)
+        // A. 고통 레벨 비교 (내림차순)
         const lvA = parseInt(String(a.level || 0).replace(/[^0-9]/g, '')) || 0;
         const lvB = parseInt(String(b.level || 0).replace(/[^0-9]/g, '')) || 0;
         if (lvB !== lvA) return lvB - lvA;
 
-        // B. 시간 비교 (낮은 시간 우선)
-        // 데이터가 '07:31' 형식이므로 문자열 비교(localeCompare)가 정확히 작동함
-        const timeA = String(a.time || "").replace(/'/g, ""); // GAS 특유의 따옴표 제거 안전장치
-        const timeB = String(b.time || "").replace(/'/g, "");
-        return timeA.localeCompare(timeB);
+        // B. 단계 비교 (내림차순)
+        const stgA = parseInt(String(a.stage || 0).replace(/[^0-9]/g, '')) || 0;
+        const stgB = parseInt(String(b.stage || 0).replace(/[^0-9]/g, '')) || 0;
+        if (stgB !== stgA) return stgB - stgA;
+
+        // C. 최단 시간 비교 (오름차순)
+        return String(a.time || "").localeCompare(String(b.time || ""));
     });
 
-    // 중복 제거 (이미 정렬되었으므로 첫 번째가 최고 기록)
+    // 2. 유저 ID와 모드(Mode)의 조합이 처음 나타나는 데이터만 필터링
     return sortedData.filter((item, index, self) =>
         index === self.findIndex((t) => (
-            t.userId === item.userId && t.mode === item.mode
+            t.userId === item.userId &&
+            t.mode === item.mode // 유저 ID뿐만 아니라 모드까지 체크하여 중복 제거
         ))
     );
-}
-
-/**
- * 2. loadRanking 함수 내 정렬 로직 (홈 화면 랭킹용)
- */
-async function loadRanking() {
-    const container = document.getElementById('content-ranking');
-    if (!container) return;
-
-    try {
-        const [rankingRes, heroRes] = await Promise.all([
-            fetch(GAS_URL),
-            fetch('json/hero.json')
-        ]);
-
-        let rawData = await rankingRes.json();
-        heroDataCache = await heroRes.json();
-
-        if (!rawData || rawData.length === 0) return;
-
-        // 전체 데이터를 캐시에 저장하기 전 유저별 최고 기록 선별 로직과 동일하게 정렬
-        rankingDataCache = rawData.filter((item, index, self) =>
-            index === self.findIndex((t) => (
-                t.userId === item.userId && t.region === item.region &&
-                t.character === item.character && t.time === item.time &&
-                t.level === item.level && t.totalScore === item.totalScore &&
-                t.stage === item.stage && t.mode === item.mode
-            ))
-        );
-
-        // 메인 화면 슬라이드 렌더링 호출
-        if (typeof renderRankingSlide === 'function') renderRankingSlide();
-
-    } catch (error) {
-        console.error("Ranking Load Error:", error);
-    }
 }
 /**
  * OWLOG - 상세 랭킹 데이터 로드 (유저당 1개 레코드 제한)
