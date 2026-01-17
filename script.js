@@ -251,7 +251,7 @@ function validateNickname(name) {
 function renderRankingSlide() {
     const lang = localStorage.getItem('owlog_lang') || 'ko';
     const container = document.getElementById('content-ranking');
-    
+
     // 필수 데이터 로드 여부 확인
     if (!container || !rankingDataCache.length || !heroDataCache || !translations[lang]) return;
 
@@ -265,16 +265,16 @@ function renderRankingSlide() {
 
     // [2] 필터링 강화: 공백 제거 및 대소문자 무시
     // 시트에서 "Classic " 처럼 공백이 들어가거나 "classic"으로 올 경우를 대비합니다.
-    const classicTop5 = bestData.filter(item => 
+    const classicTop5 = bestData.filter(item =>
         item.mode && item.mode.trim().toLowerCase() === 'classic'
     ).slice(0, 5);
 
-    const riftTop5 = bestData.filter(item => 
+    const riftTop5 = bestData.filter(item =>
         item.mode && item.mode.trim().toLowerCase() === 'rift'
     ).slice(0, 5);
 
     container.innerHTML = '';
-    container.className = "mt-4 space-y-8 md:col-span-2"; 
+    container.className = "mt-4 space-y-8 md:col-span-2";
 
     const renderSection = (title, data, modeLabel, sectionId) => {
         // 데이터가 없으면 섹션 자체를 그리지 않음
@@ -282,7 +282,7 @@ function renderRankingSlide() {
 
         const section = document.createElement('div');
         section.className = "space-y-3";
-        
+
         const header = document.createElement('div');
         header.className = "flex items-center justify-between px-1 mb-2";
         const barColorClass = sectionId === 'classic' ? 'bg-gray-700' : 'bg-gray-500';
@@ -516,7 +516,7 @@ function getItemsPerPage() {
 function renderRankingSlide() {
     const lang = localStorage.getItem('owlog_lang') || 'ko';
     const container = document.getElementById('content-ranking');
-    
+
     if (!container || !rankingDataCache.length || !heroDataCache || !translations[lang]) return;
 
     if (rankingTimeout) {
@@ -530,14 +530,14 @@ function renderRankingSlide() {
     const riftTop5 = bestData.filter(item => item.mode === 'Rift').slice(0, 6);
 
     container.innerHTML = '';
-    container.className = "mt-4 space-y-8 md:col-span-2"; 
+    container.className = "mt-4 space-y-8 md:col-span-2";
 
     const renderSection = (title, data, modeLabel, sectionId) => {
         if (data.length === 0) return;
 
         const section = document.createElement('div');
         section.className = "space-y-3";
-        
+
         const header = document.createElement('div');
         header.className = "flex items-center justify-between px-1 mb-2";
         const barColorClass = sectionId === 'classic' ? 'bg-gray-700' : 'bg-gray-500';
@@ -648,63 +648,7 @@ function startRankingRotation() {
     currentRankingPage = 0;
     renderRankingSlide(); // 첫 실행 (이 안에서 setTimeout으로 다음 루프가 예약됨)
 }
-/**
- * OWLOG - 실시간 랭킹 로드 (정렬 우선순위: 레벨 > 단계 > 시간)
- */
-async function loadRanking() {
-    const container = document.getElementById('content-ranking');
-    if (!container) return;
 
-    try {
-        const [rankingRes, heroRes] = await Promise.all([
-            fetch(GAS_URL),
-            fetch('json/hero.json')
-        ]);
-
-        let rawData = await rankingRes.json();
-        heroDataCache = await heroRes.json();
-
-        if (!rawData || rawData.length === 0) return;
-
-        // [1] 유저별 최고 기록 선별 (레벨 내림차순 -> 단계 내림차순 -> 시간 오름차순)
-        const bestPerUser = rawData.sort((a, b) => {
-            // A. 고통 레벨 추출 및 비교 (숫자만 추출)
-            const lvA = parseInt(String(a.level || 0).replace(/[^0-9]/g, '')) || 0;
-            const lvB = parseInt(String(b.level || 0).replace(/[^0-9]/g, '')) || 0;
-            if (lvB !== lvA) return lvB - lvA; // 1순위: 최고 레벨 우선
-
-            // B. 단계 추출 및 비교 (새로 추가된 로직)
-            const stgA = parseInt(String(a.stage || 0).replace(/[^0-9]/g, '')) || 0;
-            const stgB = parseInt(String(b.stage || 0).replace(/[^0-9]/g, '')) || 0;
-            if (stgB !== stgA) return stgB - stgA; // 2순위: 최고 단계 우선
-
-            // C. 최단 시간 비교
-            return String(a.time || "").localeCompare(String(b.time || "")); // 3순위: 최단 시간 우선
-        }).filter((item, index, self) =>
-            // 정렬된 상태에서 닉네임이 처음 등장하는 데이터(최고 기록)만 유지
-            index === self.findIndex((t) => t.userId === item.userId)
-        );
-
-        // 1. 완전히 동일한 데이터만 제거 (전체 데이터 보존)
-        const uniqueData = rawData.filter((item, index, self) =>
-            index === self.findIndex((t) => (
-                t.userId === item.userId && t.region === item.region &&
-                t.character === item.character && t.time === item.time &&
-                t.level === item.level && t.totalScore === item.totalScore &&
-                t.stage === item.stage && t.mode === item.mode
-            ))
-        );
-
-        // 2. 전체 데이터를 캐시에 저장 및 랭킹 표시
-        rankingDataCache = uniqueData;
-        
-        // renderRankingSlide를 호출하여 화면 갱신
-        if (typeof renderRankingSlide === 'function') renderRankingSlide();
-        
-    } catch (error) {
-        console.error("Ranking Load Error:", error);
-    }
-}
 /**
  * 상세 랭킹 전용 상태 변수
  */
@@ -729,13 +673,13 @@ async function initDetailedRankPage() {
     if (modeSelect) {
         // 이전 선택값 유지 (없으면 Classic)
         const currentMode = modeSelect.value || "Classic";
-        
+
         // 올모드 없이 두 가지만 존재하므로 index로 접근하여 번역 갱신
         if (translations[lang]) {
             modeSelect.options[0].text = translations[lang]['fissure'] || '공간의 틈새';
             modeSelect.options[1].text = translations[lang]['rift'] || '균열';
         }
-        
+
         modeSelect.value = currentMode;
     }
 
@@ -811,8 +755,8 @@ function handleRankFilterChange() {
         let matchHero = true;
         if (heroVal && selectedHeroInfo) {
             // 시트에 저장된 이름이 영문이거나 국문인 경우 모두 대응
-            matchHero = (item.character === selectedHeroInfo.english_name || 
-                         item.character === selectedHeroInfo.korean_name);
+            matchHero = (item.character === selectedHeroInfo.english_name ||
+                item.character === selectedHeroInfo.korean_name);
         }
 
         // [레벨 필터링] (고통 레벨)
@@ -836,7 +780,7 @@ function handleRankFilterChange() {
      * 4. UI 갱신
      * 리스트의 첫 페이지부터 보여주도록 설정하고 화면을 다시 그립니다.
      */
-    detailedCurrentPage = 1; 
+    detailedCurrentPage = 1;
     if (typeof renderDetailedRankList === 'function') {
         renderDetailedRankList();
     }
@@ -1382,37 +1326,69 @@ function triggerScanner() {
         fileInput.click();
     }
 }
-
 /**
- * 유저별 + 모드별 최고 기록 추출
- * (우선순위: 레벨 > 단계 > 시간)
+ * 1. 유저별 + 모드별 최고 기록 추출 (전체 정렬 로직 통합)
+ * 우선순위: 고통 레벨(내림차순) > 시간(오름차순)
  */
 function getBestRecordsPerUser(data) {
     if (!data || data.length === 0) return [];
 
-    // 1. 우선순위에 따라 전체 데이터 정렬
+    // 단계(Stage) 비교를 삭제하고 레벨과 시간으로만 정렬
     const sortedData = [...data].sort((a, b) => {
-        // A. 고통 레벨 비교 (내림차순)
+        // A. 고통 레벨 비교 (높은 레벨 우선)
         const lvA = parseInt(String(a.level || 0).replace(/[^0-9]/g, '')) || 0;
         const lvB = parseInt(String(b.level || 0).replace(/[^0-9]/g, '')) || 0;
         if (lvB !== lvA) return lvB - lvA;
 
-        // B. 단계 비교 (내림차순)
-        const stgA = parseInt(String(a.stage || 0).replace(/[^0-9]/g, '')) || 0;
-        const stgB = parseInt(String(b.stage || 0).replace(/[^0-9]/g, '')) || 0;
-        if (stgB !== stgA) return stgB - stgA;
-
-        // C. 최단 시간 비교 (오름차순)
-        return String(a.time || "").localeCompare(String(b.time || ""));
+        // B. 시간 비교 (낮은 시간 우선)
+        // 데이터가 '07:31' 형식이므로 문자열 비교(localeCompare)가 정확히 작동함
+        const timeA = String(a.time || "").replace(/'/g, ""); // GAS 특유의 따옴표 제거 안전장치
+        const timeB = String(b.time || "").replace(/'/g, "");
+        return timeA.localeCompare(timeB);
     });
 
-    // 2. 유저 ID와 모드(Mode)의 조합이 처음 나타나는 데이터만 필터링
+    // 중복 제거 (이미 정렬되었으므로 첫 번째가 최고 기록)
     return sortedData.filter((item, index, self) =>
         index === self.findIndex((t) => (
-            t.userId === item.userId && 
-            t.mode === item.mode // 유저 ID뿐만 아니라 모드까지 체크하여 중복 제거
+            t.userId === item.userId && t.mode === item.mode
         ))
     );
+}
+
+/**
+ * 2. loadRanking 함수 내 정렬 로직 (홈 화면 랭킹용)
+ */
+async function loadRanking() {
+    const container = document.getElementById('content-ranking');
+    if (!container) return;
+
+    try {
+        const [rankingRes, heroRes] = await Promise.all([
+            fetch(GAS_URL),
+            fetch('json/hero.json')
+        ]);
+
+        let rawData = await rankingRes.json();
+        heroDataCache = await heroRes.json();
+
+        if (!rawData || rawData.length === 0) return;
+
+        // 전체 데이터를 캐시에 저장하기 전 유저별 최고 기록 선별 로직과 동일하게 정렬
+        rankingDataCache = rawData.filter((item, index, self) =>
+            index === self.findIndex((t) => (
+                t.userId === item.userId && t.region === item.region &&
+                t.character === item.character && t.time === item.time &&
+                t.level === item.level && t.totalScore === item.totalScore &&
+                t.stage === item.stage && t.mode === item.mode
+            ))
+        );
+
+        // 메인 화면 슬라이드 렌더링 호출
+        if (typeof renderRankingSlide === 'function') renderRankingSlide();
+
+    } catch (error) {
+        console.error("Ranking Load Error:", error);
+    }
 }
 /**
  * OWLOG - 상세 랭킹 데이터 로드 (유저당 1개 레코드 제한)
@@ -1537,8 +1513,8 @@ async function saveRecord(event) {
 
     // [2] 유효성 검사: 공간의 틈새 모드일 때 3단계 미만 저장 차단
     if (mode === 'fissure' && scannedStage < 3) {
-        const msg = lang === 'ko' 
-            ? "공간의 틈새는 3단계 이상 기록만 저장할 수 있습니다." 
+        const msg = lang === 'ko'
+            ? "공간의 틈새는 3단계 이상 기록만 저장할 수 있습니다."
             : "Spatial Interstice records require Stage 3 or higher.";
         alert(msg);
         return;
@@ -1569,9 +1545,9 @@ async function saveRecord(event) {
             level: lastScannedData.level,
             totalScore: lastScannedData.totalScore,
             // 균열(rift)인 경우 단계를 1로 고정, 아니면 스캔된 단계 사용
-            stage: mode === 'rift' ? 1 : scannedStage, 
+            stage: mode === 'rift' ? 1 : scannedStage,
             // 시트 저장용 모드 이름 매핑
-            mode: mode === 'fissure' ? 'Classic' : 'Rift' 
+            mode: mode === 'fissure' ? 'Classic' : 'Rift'
         };
 
         await fetch(GAS_URL, {
@@ -1583,13 +1559,13 @@ async function saveRecord(event) {
         });
 
         alert(lang === 'ko' ? "기록이 성공적으로 저장되었습니다!" : "Record saved successfully!");
-        location.reload(); 
+        location.reload();
 
     } catch (error) {
         // GAS 특유의 응답 에러 핸들링
         if (error.message === "Failed to fetch" || error.name === "TypeError") {
             alert(lang === 'ko' ? "기록이 성공적으로 저장되었습니다!" : "Record saved successfully!");
-            location.reload(); 
+            location.reload();
         } else {
             console.error("Save Error:", error);
             alert(lang === 'ko' ? "저장 중 에러가 발생했습니다." : "An error occurred while saving.");
