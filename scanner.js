@@ -15,6 +15,7 @@ async function initHeroSelect(lang, nameToSelect = "") {
         allCharacterData = data.characters;
 
         const select = document.getElementById('resName');
+        if (!select) return;
         select.innerHTML = '';
 
         allCharacterData.forEach(char => {
@@ -41,7 +42,6 @@ async function initHeroSelect(lang, nameToSelect = "") {
 async function checkCharacterName(img, worker, lang) {
     const isCropped = (img.width / img.height) < 1.3;
 
-    // [좌표] dds.png 빨간 박스 위치
     let nx = img.width * 0.13, ny = img.height * 0.015;
     let nw = img.width * 0.35, nh = img.height * 0.11;
 
@@ -56,21 +56,17 @@ async function checkCharacterName(img, worker, lang) {
     nCtx.drawImage(img, nx, ny, nw, nh, 0, 0, nCanvas.width, nCanvas.height);
 
     const { data } = await worker.recognize(nCanvas);
-
-    // [보정] 기호(/) 등을 제거하고 순수 언어 텍스트만 추출
     const detectedRaw = data.text.trim();
     const detectedClean = detectedRaw.replace(/[^가-힣a-zA-Z]/g, '').trim();
 
     const heroList = allCharacterData.map(c => (lang === 'ko' ? c.korean_name : c.english_name));
 
-    // 1순위: 포함 관계 혹은 완전 일치 확인
     for (let heroName of heroList) {
         if (detectedClean.toLowerCase().includes(heroName.toLowerCase()) && heroName.length > 0) {
             return heroName;
         }
     }
 
-    // 2순위: 유사도 비교
     let match = heroList[0], min = 99;
     heroList.forEach(h => {
         const score = levenshtein(detectedClean.toLowerCase(), h.toLowerCase());
@@ -80,7 +76,7 @@ async function checkCharacterName(img, worker, lang) {
 }
 
 /**
- * OWLOG - OCR 스캐너 엔진 (사용자 지정 '니' 매핑 반영 버전)
+ * OWLOG - OCR 스캐너 엔진
  */
 async function runMainScan(img) {
     const currentLang = localStorage.getItem('owlog_lang') || 'en';
@@ -94,15 +90,10 @@ async function runMainScan(img) {
     statusText.classList.add('text-blue-500', 'animate-pulse');
     if (debugContainer) debugContainer.innerHTML = ''; 
 
-    // 인식이 가장 잘 되었던 기본 워커 설정 (한글+영어)
     const worker = await Tesseract.createWorker('kor+eng');
 
     try {
         const isCropped = (img.width / img.height) < 1.3;
-
-        /**
-         * [좌표 복구] 사용자님이 제공한 가장 정확한 초기 좌표계 적용
-         */
         const regions = {
             time:  { x: 0.73, y: 0.18, w: 0.23, h: 0.09 },
             stage: { x: 0.77, y: 0.48, w: 0.22, h: 0.09 }, 
@@ -112,7 +103,6 @@ async function runMainScan(img) {
 
         if (!isCropped) {
             Object.keys(regions).forEach(k => { 
-                // 전체 화면일 때의 $x$ 좌표 오프셋 계산
                 regions[k].x = 0.45 + (regions[k].x * 0.55); 
             });
         }
@@ -123,7 +113,6 @@ async function runMainScan(img) {
             const sw = img.width * roi.w, sh = img.height * roi.h;
             
             canvas.width = sw * 4; canvas.height = sh * 4;
-            // 대비(contrast) 3 설정으로 이미지 뭉개짐 방지
             ctx.filter = 'grayscale(1) contrast(3) brightness(1.1)';
             ctx.drawImage(img, img.width * roi.x, img.height * roi.y, sw, sh, 0, 0, canvas.width, canvas.height);
 
@@ -143,7 +132,6 @@ async function runMainScan(img) {
             return data.text.trim();
         }
 
-        // 스캔 실행
         const [detectedName, rawTime, rawStage, rawLevel, rawTotal] = await Promise.all([
             checkCharacterName(img, worker, currentLang),
             scanRegion(regions.time, 'TIME'),
@@ -156,30 +144,20 @@ async function runMainScan(img) {
 
         let res = { time: "00:00", stage: "1", level: "0", total: "0" };
 
-        /**
-         * [추출 로직 수정] 
-         * '니', 'y', 'Y', ':' 등 도트 폰트 '4'로 오인되는 문자를 사전에 치환합니다.
-         */
         const extractLastNumber = (text, defaultVal) => {
-            // 텍스트 전처리: '니', 'y', ':' 등을 '4'로 변경
             let cleanedText = text.replace(/[니ㄴyY:]|L\]/g, '4');
-            
             const nums = cleanedText.match(/\d+/g);
             if (!nums) return defaultVal;
-            
             let val = parseInt(nums[nums.length - 1]) || defaultVal;
-            // 11단계 제한 로직 유지
             return (val > 11 ? 11 : val).toString();
         };
 
         res.stage = extractLastNumber(rawStage, "1");
         res.level = extractLastNumber(rawLevel, "0");
 
-        // 시간 보정
         const tM = rawTime.match(/\d{1,2}[:;.\s]\d{2}/);
         if (tM) res.time = tM[0].replace(/[;.\s]/g, ':').padStart(5, '0');
 
-        // 합계 보정
         const totalNums = rawTotal.match(/\d+/g);
         if (totalNums) res.total = parseInt(totalNums.join('')).toLocaleString();
 
@@ -187,19 +165,18 @@ async function runMainScan(img) {
             debugText.innerText = `[RAW DATA]\nTime: ${rawTime}\nStage: ${rawStage}\nLevel: ${rawLevel}\nTotal: ${rawTotal}`;
         }
 
-        // 메모리 저장
+        // 전역 변수 lastScannedData에 저장 (script.js 등에서 접근)
         lastScannedData = {
             time: res.time, level: res.level, stage: res.stage,
             totalScore: parseInt(res.total.replace(/,/g, ''))
         };
 
-        // UI 업데이트
+        // UI 업데이트 (OWL 전용 ID)
         document.getElementById('resStage').innerText = res.stage;
         document.getElementById('resTime').innerText = res.time;
         document.getElementById('resLevel').innerText = res.level;
         document.getElementById('resTotal').innerText = res.total;
 
-        // 최종 유효성 검사 (고통 레벨이 0보다 커야 함)
         const totalNum = lastScannedData.totalScore;
         const isDetected = res.time !== "00:00" && res.level !== "0";
 
@@ -224,40 +201,31 @@ async function runMainScan(img) {
     }
 }
 
-imageInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        const cropTarget = document.getElementById('cropTarget');
-        cropTarget.src = event.target.result;
-        document.getElementById('cropModal').classList.remove('hidden');
-        if (cropper) cropper.destroy();
-        setTimeout(() => {
-            cropper = new Cropper(cropTarget, {
-                aspectRatio: NaN,
-                viewMode: 1,
-                dragMode: 'crop',
-                autoCropArea: 0.9,
-                background: false
-            });
-        }, 150);
-    };
-    reader.readAsDataURL(file);
-});
-
-function confirmCrop() {
-    if (!cropper) return;
-    const canvas = cropper.getCroppedCanvas({ maxWidth: 2000, maxHeight: 2000 });
-    closeCropModal();
-    runMainScan(canvas);
+/**
+ * 3. 이미지 선택 리스너 (수정됨)
+ * 직접 크로퍼를 실행하지 않고 script.js의 공용 모달 함수를 호출합니다.
+ */
+const imageInput = document.getElementById('imageInput');
+if (imageInput) {
+    imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            // script.js의 공용 함수 호출 + 분석 완료 후 'runMainScan'을 실행하도록 예약
+            if (typeof openCropModal === 'function') {
+                openCropModal(event.target.result, runMainScan);
+            }
+        };
+        reader.readAsDataURL(file);
+        e.target.value = ""; // 동일 파일 재선택 가능하게 초기화
+    });
 }
 
-function closeCropModal() {
-    document.getElementById('cropModal').classList.add('hidden');
-    if (cropper) { cropper.destroy(); cropper = null; }
-    document.getElementById('imageInput').value = "";
-}
+/**
+ * 중복 방지를 위해 기존 confirmCrop, closeCropModal 함수는 삭제되었습니다.
+ * 이 기능들은 이제 script.js에서 통합 관리됩니다.
+ */
 
 function levenshtein(a, b) {
     const m = Array.from({ length: a.length + 1 }, (_, i) => [i]);
