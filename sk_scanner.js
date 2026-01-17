@@ -3,7 +3,7 @@
  */
 
 let skLastScannedData = { time: '00:00', mode: 'Unknown', totalScore: 0, level: 0 };
-let skHeroDataCache = null;
+
 
 /**
  * 초기화: 모드 선택 시 selectMode에서 호출됨
