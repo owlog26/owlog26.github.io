@@ -82,6 +82,9 @@ async function checkCharacterName(img, worker, lang) {
 /**
  * 3. 메인 스캔 함수 (적 정보 제거 및 수치 보정 강화)
  */
+/**
+ * OWLOG - OCR 스캐너 엔진 (고통 레벨 11 제한 및 보안 강화 버전)
+ */
 async function runMainScan(img) {
     const currentLang = localStorage.getItem('owlog_lang') || 'en';
     const saveBtn = document.getElementById('saveBtn');
@@ -97,12 +100,9 @@ async function runMainScan(img) {
 
     try {
         const isCropped = (img.width / img.height) < 1.3;
-
-        // [좌표 설정] 가이드 이미지 기반 (적 처치 제거, 레벨 폭 확대)
-        // [수정] 적 처치(enemies) 삭제 및 level 영역 확장
         const regions = {
             time: { x: 0.73, y: 0.18, w: 0.23, h: 0.09 },
-            level: { x: 0.77, y: 0.58, w: 0.22, h: 0.09 }, // 폭을 0.22로 늘려 '11' 인식 대비
+            level: { x: 0.77, y: 0.58, w: 0.22, h: 0.09 },
             total: { x: 0.12, y: 0.92, w: 0.30, h: 0.07 }
         };
 
@@ -121,7 +121,6 @@ async function runMainScan(img) {
             return data.text.trim();
         }
 
-        // [수정] 적 정보 스캔 제거
         const [detectedName, rawTime, rawLevel, rawTotal] = await Promise.all([
             checkCharacterName(img, worker, currentLang),
             scanRegion(regions.time),
@@ -131,52 +130,53 @@ async function runMainScan(img) {
 
         await initHeroSelect(currentLang, detectedName);
 
-        if (debugText) {
-            debugText.innerText = `[SCAN RESULT]\n- Name: ${detectedName}\n- Time: ${rawTime}\n- Level: ${rawLevel}\n- Total: ${rawTotal}`;
-        }
-
         let res = { time: "00:00", level: "0", total: "0" };
 
         // [시간 보정]
-        // A. [시간] 스프레드시트 '분:초' 인식용 보정
-        // [수정] 홑따옴표(')를 추가하여 스프레드시트의 자동 시간 변환 방지
         const tM = rawTime.match(/\d{1,2}[:;.\s]\d{2}/);
-        if (tM) {
-            const timeStr = tM[0].replace(/[;.\s]/g, ':').padStart(5, '0'); // MM:SS 추출
-            // 앞에 '를 붙여 "문자열"임을 명시 (시트에서 27:45로 정확히 표시됨)
-            res.time = `${timeStr}`;
-        }
-        // B. [레벨] 배율 기호 제외하고 마지막 숫자 '11'만 추출
-        const lvNumbers = rawLevel.replace(/[SIl|]/g, '1').match(/\d+/g);
-        if (lvNumbers) res.level = lvNumbers[lvNumbers.length - 1];
+        if (tM) res.time = tM[0].replace(/[;.\s]/g, ':').padStart(5, '0');
 
-        // C. [합계] 마지막 숫자 뭉치에서 뒤의 5자리만 취함
+        // [레벨 보정] 숫자 추출 후 11 초과 시 11로 고정
+        const lvNumbers = rawLevel.replace(/[SIl|]/g, '1').match(/\d+/g);
+        let levelVal = 0;
+        if (lvNumbers) {
+            levelVal = parseInt(lvNumbers[lvNumbers.length - 1]) || 0;
+        }
+        if (levelVal > 11) levelVal = 11;
+        res.level = levelVal.toString();
+
+        // [점수 보정]
         const totalNums = rawTotal.match(/\d+/g);
         if (totalNums) {
             let sStr = totalNums[totalNums.length - 1];
-            if (parseInt(sStr) > 99999) sStr = sStr.slice(-5); // 5자리 제한
+            if (parseInt(sStr) > 99999) sStr = sStr.slice(-5);
             res.total = parseInt(sStr).toLocaleString();
         }
 
-        // [추가] 스캔 성공 시 원본 데이터를 변수에 안전하게 보관
+        // 메모리 보안 저장 (소스 수정 방지용)
         lastScannedData = {
             time: res.time,
             level: res.level,
             totalScore: parseInt(res.total.replace(/,/g, ''))
         };
 
-        // UI 업데이트 (화면에 보여주는 용도일 뿐, 저장 시에는 쓰지 않음)
+        // UI 업데이트
         document.getElementById('resTime').innerText = res.time;
         document.getElementById('resLevel').innerText = res.level;
         document.getElementById('resTotal').innerText = res.total;
-        // 최종 유효성 검사
-        if (res.time !== "00:00" && res.level !== "0") {
+
+        // 최종 유효성 검사 (점수 1만점 초과 필수)
+        const totalNum = lastScannedData.totalScore;
+        if (res.time !== "00:00" && res.level !== "0" && totalNum > 10000) {
             saveBtn.disabled = false;
             statusText.innerText = (currentLang === 'ko') ? "분석 완료" : "COMPLETE";
             statusText.classList.replace('text-blue-500', 'text-green-500');
         } else {
+            saveBtn.disabled = true;
             statusText.classList.replace('text-blue-500', 'text-red-500');
-            statusText.innerText = (currentLang === 'ko') ? "인식 실패" : "SCAN FAILED";
+            statusText.innerText = (totalNum <= 10000 && res.level !== "0") 
+                ? (currentLang === 'ko' ? "10,000점 이하 등록 불가" : "SCORE TOO LOW")
+                : (currentLang === 'ko' ? "인식 실패" : "SCAN FAILED");
         }
 
     } catch (err) {
