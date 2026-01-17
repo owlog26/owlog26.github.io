@@ -187,7 +187,9 @@ function closeScanner() {
  * OWLOG - 데이터 저장 및 보안 로직
  */
 
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyd7db4FDEo5ca8NyABoYWoj4IM-qEzqJktKIqQeZB-ASHXZSOiVWp1zsEbrS-1wyYG/exec"; // 배포한 웹 앱 URL 입력
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxpFcci_p7Px3a1G4GwP6lTe_JSOQXHJ_CcAOAi98j0wJKsw9dtpWql3dRLoiynIGep/exec";
+
+
 
 // [방어 레이어 1] 금지어 리스트 (핵심 키워드 위주로 구성, 로직으로 변형 차단)
 const BANNED_KEYWORDS = [
@@ -233,9 +235,22 @@ function validateNickname(name) {
 async function saveRecord(event) {
     if (event) event.preventDefault();
 
-    const lang = localStorage.getItem('owlog_lang') || 'en';
+    const lang = localStorage.getItem('owlog_lang') || 'ko';
     const saveBtn = document.getElementById('saveBtn');
     const originalText = saveBtn.innerText;
+
+    // [1] 모드 및 단계 데이터 준비
+    const mode = currentEntry.mode; // 'fissure' 또는 'rift'
+    const scannedStage = parseInt(lastScannedData.stage) || 1;
+
+    // [조건 1] 공간의 틈새(fissure) 모드일 때 3단계 미만 저장 차단
+    if (mode === 'fissure' && scannedStage < 3) {
+        const msg = lang === 'ko' 
+            ? "공간의 틈새는 3단계 이상 기록만 저장할 수 있습니다." 
+            : "Spatial Interstice records require Stage 3 or higher.";
+        alert(msg);
+        return;
+    }
 
     saveBtn.disabled = true;
     saveBtn.innerText = lang === 'ko' ? "저장 중..." : "Saving...";
@@ -245,13 +260,18 @@ async function saveRecord(event) {
         const region = document.getElementById('userRegion').value;
         const charName = document.getElementById('resName').value;
 
+        // [조건 2 & 3] 페이로드 구성 (H열: stage, I열: mode)
         const payload = {
             userId: nickname,
             region: region,
             character: charName,
             time: `'${lastScannedData.time}`,
             level: lastScannedData.level,
-            totalScore: lastScannedData.totalScore
+            totalScore: lastScannedData.totalScore,
+            // 균열(rift)인 경우 단계를 1로 고정, 아니면 스캔된 단계 사용
+            stage: mode === 'rift' ? 1 : scannedStage, 
+            // 공간의 틈새는 Classic, 균열은 Rift로 명칭 매핑
+            mode: mode === 'fissure' ? 'Classic' : 'Rift' 
         };
 
         await fetch(GAS_URL, {
@@ -262,21 +282,17 @@ async function saveRecord(event) {
             body: JSON.stringify(payload)
         });
 
-        // 성공 시 알림 후 새로고침
         alert(lang === 'ko' ? "기록이 성공적으로 저장되었습니다!" : "Record saved successfully!");
-        location.reload(); // [추가] 페이지 새로고침
+        location.reload(); 
 
     } catch (error) {
-        // GAS 특유의 에러 핸들링 (데이터는 들어갔으나 브라우저가 응답을 못 읽는 경우)
         if (error.message === "Failed to fetch" || error.name === "TypeError") {
             alert(lang === 'ko' ? "기록이 성공적으로 저장되었습니다!" : "Record saved successfully!");
-            location.reload(); // [추가] 페이지 새로고침
+            location.reload(); 
         } else {
-            //  console.error("Save Error:", error);
-            //  alert(lang === 'ko' ? "서버 통신 에러가 발생했습니다." : "Server error occurred.");
+            console.error("Save Error:", error);
         }
     } finally {
-        // 새로고침이 일어나기 전까지 버튼 상태 유지
         saveBtn.disabled = false;
         saveBtn.innerText = originalText;
     }
@@ -419,130 +435,126 @@ function getItemsPerPage() {
     return window.innerWidth >= 768 ? 10 : 5;
 }
 
-/**
- * 랭킹 데이터를 슬라이드 단위로 렌더링 (반응형)
- */
 function renderRankingSlide() {
-    const lang = localStorage.getItem('owlog_lang') || 'en';
+    const lang = localStorage.getItem('owlog_lang') || 'ko';
     const container = document.getElementById('content-ranking');
-    if (!container || !rankingDataCache.length || !heroDataCache) return;
-    // [수정] 전체 캐시에서 유저별 최고 기록만 뽑아서 슬라이드 구성
-    const bestData = getBestRecordsPerUser(rankingDataCache);
+    
+    if (!container || !rankingDataCache.length || !heroDataCache || !translations[lang]) return;
 
-    const itemsPerPage = getItemsPerPage();
-    const startIndex = currentRankingPage * itemsPerPage;
-    const slideData = bestData.slice(startIndex, startIndex + itemsPerPage)
-    // 더 이상 보여줄 데이터가 없으면 1위로 리셋
-    if (slideData.length === 0 || startIndex >= 15) {
-        currentRankingPage = 0;
-        renderRankingSlide();
-        return;
+    if (rankingTimeout) {
+        clearTimeout(rankingTimeout);
+        rankingTimeout = null;
     }
 
+    const bestData = getBestRecordsPerUser(rankingDataCache);
+
+    const classicTop5 = bestData.filter(item => item.mode === 'Classic').slice(0, 5);
+    const riftTop5 = bestData.filter(item => item.mode === 'Rift').slice(0, 5);
+
     container.innerHTML = '';
+    container.className = "mt-4 space-y-8 md:col-span-2"; 
 
-    slideData.forEach((item, index) => {
-        const rank = startIndex + index + 1;
-        const heroInfo = heroDataCache.characters.find(c =>
-            c.english_name === item.character || c.korean_name === item.character
-        );
+    const renderSection = (title, data, modeLabel, sectionId) => {
+        if (data.length === 0) return;
 
-        const regionCode = item.region.toLowerCase(); // 국가 코드를 소문자로 변환
-        const flagUrl = `https://flagcdn.com/w40/${regionCode}.png`; // 40px 너비의 국기 이미지 URL
+        const section = document.createElement('div');
+        section.className = "space-y-3";
+        
+        const header = document.createElement('div');
+        header.className = "flex items-center justify-between px-1 mb-2";
+        const barColorClass = sectionId === 'classic' ? 'bg-gray-700' : 'bg-gray-500';
 
-        let englishName = heroInfo ? heroInfo.english_name : item.character;
-        let fileName = englishName.replace(/\s+/g, '_');
-        const imgPath = `./heroes/${fileName}.webp`;
-        const displayName = heroInfo ? (lang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : item.character;
-
-        let objectPosition = "center 10%";
-        let imageScale = "scale(1.3)"; // 기본 크기 (1배)
-
-        if (englishName === "Alessia") objectPosition = "center 40%";
-        if (englishName === "Yoiko") {
-            objectPosition = "center 10%"; // 세로 위치만 고정
-            imageScale = "scale(1.8) translateX(-5px)";
-        } else if (englishName === "Alasdair") {
-            objectPosition = "center 20%"; // 세로 위치만 고정
-            imageScale = "scale(1.3)";
-        } else if (englishName === "Ginzo") {
-            objectPosition = "center 30%"; // 세로 위치만 고정
-            imageScale = "scale(1.3)  translateX(3px)";
-        } else if (englishName === "Akaisha") {
-            objectPosition = "center 20%"; // 세로 위치만 고정
-            imageScale = "scale(1.3)";
-        } else if (englishName === "Alessia") {
-            objectPosition = "center 40%"; // 세로 위치만 고정
-            imageScale = "scale(1)";
-        } else if (englishName === "Adelvyn") {
-            objectPosition = "center 40%"; // 세로 위치만 고정
-            imageScale = "scale(1)";
-        } else if (englishName === "Kelara") {
-            objectPosition = "center 30%"; // 세로 위치만 고정
-            imageScale = "scale(1.2)";
-        } else if (englishName === "Vesper") {
-            objectPosition = "center 30%"; // 세로 위치만 고정
-            imageScale = "scale(1.7)";
-        } else if (englishName === "Jadetalon") {
-            objectPosition = "center -20%"; // 세로 위치만 고정
-            imageScale = "scale(2) translateX(10px)";
-        } else if (englishName === "Synthia") {
-            objectPosition = "center 10%"; // 세로 위치만 고정
-            imageScale = "scale(1.8) translateX(-10px)";
-        }
-        const modeName = (lang === 'ko') ? "균열" : "Rift";
-
-        const card = document.createElement('div');
-        // md:p-4 이상으로 PC에서 카드 크기도 살짝 키움
-        card.className = "flex items-center justify-between p-3 md:p-4 bg-gray-50 rounded-xl border border-gray-100 shadow-sm transition-all duration-500 opacity-0 transform translate-y-2";
-
-        card.innerHTML = `
-            <div class="flex items-center gap-3">
-                <span class="font-black ${rank <= 3 ? 'text-yellow-500' : 'text-gray-300'} w-4 text-center italic text-xs md:text-sm">${rank}</span>
-                <div class="w-12 h-5 md:w-16 md:h-7 rounded bg-gray-200 border border-gray-200 overflow-hidden flex-shrink-0 relative">
-                    <img src="${imgPath}" onerror="this.src='https://via.placeholder.com/48x20?text=Hero'" 
-                             class="w-full h-full object-cover transition-transform" 
-                 style="object-position: ${objectPosition}; transform: ${imageScale};">
-                    <span class="absolute right-0 bottom-0 bg-red-500 text-[6px] md:text-[8px] text-white px-0.5 font-bold">Lv.${item.level}</span>
-                </div>
-                <div class="flex flex-col">
-                    <div class="flex items-center gap-1.5">
-                    <div class="w-5 h-3.5 md:w-6 md:h-4 overflow-hidden rounded-[2px] shadow-[0_0_2px_rgba(0,0,0,0.1)] border border-gray-100 flex-shrink-0 bg-gray-50">
-            <img src="${flagUrl}" 
-                 onerror="this.src='https://via.placeholder.com/20x14?text=?'" 
-                 class="w-full h-full object-cover shadow-inner" 
-                 title="${item.region}">
-        </div>
-                       <span class="font-bold text-sm md:text-base leading-none text-gray-800 cursor-pointer" 
-                      onclick="handleDirectJump('${item.userId}')">
-                    ${item.userId}
-                </span>
-                    </div>
-                    <span class="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mt-0.5">
-                ${modeName} <span class="mx-0.5">•</span> ${displayName}
-            </span>
-                </div>
-            </div>
-            <div class="flex flex-col items-end gap-1">
-                <span class="text-[10px] md:text-xs font-bold text-gray-400 italic px-2 py-0.5 bg-white rounded shadow-sm">${item.time}</span>
-                <span class="text-[9px] md:text-sm font-black text-gray-900 tracking-tighter">${Number(item.totalScore).toLocaleString()} PTS</span>
-            </div>
+        header.innerHTML = `
+            <h3 class="font-bold text-sm md:text-base flex items-center gap-2 text-gray-800">
+                <span class="w-1 h-4 rounded-sm ${barColorClass}"></span>
+                ${title}
+            </h3>
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Top 5</span>
         `;
-        container.appendChild(card);
-        setTimeout(() => card.classList.remove('opacity-0', 'translate-y-2'), index * 50);
-    });
+        section.appendChild(header);
 
-    // 다음 페이지 계산
-    const isFirstPage = (currentRankingPage === 0);
-    currentRankingPage++;
+        const listGrid = document.createElement('div');
+        listGrid.className = "grid grid-cols-1 md:grid-cols-2 gap-3";
 
-    // 1~5위(혹은 PC 1~10위) 포함된 첫 슬라이드는 20초, 나머지는 10초
-    const delay = isFirstPage ? 20000 : 10000;
+        data.forEach((item, index) => {
+            const rank = index + 1;
+            const heroInfo = heroDataCache.characters.find(c =>
+                c.english_name === item.character || c.korean_name === item.character
+            );
 
-    if (rankingTimeout) clearTimeout(rankingTimeout);
-    rankingTimeout = setTimeout(renderRankingSlide, delay);
+            const regionCode = (item.region || 'us').toLowerCase();
+            const flagUrl = `https://flagcdn.com/w40/${regionCode}.png`;
+            const englishName = heroInfo ? heroInfo.english_name : item.character;
+            const fileName = englishName.replace(/\s+/g, '_');
+            const imgPath = `./heroes/${fileName}.webp`;
+            const displayName = heroInfo ? (lang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : item.character;
+
+            // [1] 배지 설정 (이미지 위 배지: 클래식은 단계, 균열은 고통)
+            const badgeLabel = sectionId === 'classic' ? (lang === 'ko' ? '단계' : 'STG') : (lang === 'ko' ? '고통' : 'Lv.');
+            const badgeValue = sectionId === 'classic' ? (item.stage || "1") : (item.level || "0");
+
+            // [2] 텍스트 라벨 설정 (이름 옆 문구 분기)
+            // 클래식: 고통 레벨 • 캐릭터 이름
+            // 균열: 캐릭터 이름만 표시
+            let infoLabelText = "";
+            if (sectionId === 'classic') {
+                const levelText = lang === 'ko' ? '고통' : 'Lv.';
+                infoLabelText = `${levelText} ${item.level} <span class="mx-0.5 text-gray-300">•</span> ${displayName}`;
+            } else {
+                infoLabelText = displayName;
+            }
+
+            let objectPosition = "center 10%";
+            let imageScale = "scale(1.3)";
+            if (englishName === "Alessia") objectPosition = "center 40%";
+            if (englishName === "Yoiko") { objectPosition = "center 10%"; imageScale = "scale(1.8) translateX(-5px)"; }
+            else if (englishName === "Vesper") { objectPosition = "center 30%"; imageScale = "scale(1.7)"; }
+            else if (englishName === "Jadetalon") { objectPosition = "center -20%"; imageScale = "scale(2) translateX(10px)"; }
+
+            const card = document.createElement('div');
+            card.className = "flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm transition-all duration-500 hover:shadow-md";
+            card.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="font-bold ${rank <= 3 ? 'text-gray-700' : 'text-gray-400'} w-4 text-center italic text-xs">${rank}</span>
+                    <div class="w-12 h-5 md:w-16 md:h-7 rounded bg-gray-100 border border-gray-100 overflow-hidden flex-shrink-0 relative">
+                        <img src="${imgPath}" onerror="this.src='https://via.placeholder.com/48x20?text=Hero'" 
+                             class="w-full h-full object-cover grayscale-[30%]" style="object-position: ${objectPosition}; transform: ${imageScale};">
+                        <span class="absolute right-0 bottom-0 bg-red-600/80 text-[6px] md:text-[8px] text-white px-1 font-bold">
+                            ${badgeLabel} ${badgeValue}
+                        </span>
+                    </div>
+                    <div class="flex flex-col">
+                        <div class="flex items-center gap-1.5">
+                            <img src="${flagUrl}" class="w-4 h-3 object-cover rounded-[1px] shadow-sm opacity-80">
+                            <span class="font-bold text-sm text-gray-700 cursor-pointer hover:text-black transition-colors" onclick="handleDirectJump('${item.userId}')">${item.userId}</span>
+                        </div>
+                        <span class="text-[8px] font-medium text-gray-400 uppercase mt-0.5">${infoLabelText}</span>
+                    </div>
+                </div>
+                <div class="flex flex-col items-end gap-0.5">
+                    <span class="text-[8px] font-medium text-gray-400 uppercase tracking-tighter">
+                        ${Number(item.totalScore).toLocaleString()} PTS
+                    </span>
+                    <span class="text-[11px] font-bold text-gray-900 tabular-nums tracking-tight">
+                        ${item.time}
+                    </span>
+                </div>
+            `;
+            listGrid.appendChild(card);
+        });
+
+        section.appendChild(listGrid);
+        container.appendChild(section);
+    };
+
+    const titleClassic = translations[lang]['fissure'] || "Spatial Interstice";
+    const labelClassic = translations[lang]['fissureSub'] || "Classic";
+    const titleRift = translations[lang]['rift'] || "The Rift";
+    const labelRift = translations[lang]['riftSub'] || "Rift";
+
+    renderSection(titleClassic, classicTop5, labelClassic, 'classic');
+    renderSection(titleRift, riftTop5, labelRift, 'rift');
 }
-
 /**
  * 윈도우 크기 조절 시 즉시 반영 (디바운싱 적용 권장이나 여기선 즉시 갱신)
  */
@@ -561,6 +573,9 @@ function startRankingRotation() {
 /**
  * OWLOG - 실시간 랭킹 로드 (유저별 최고 기록 1개만 추출)
  */
+/**
+ * OWLOG - 실시간 랭킹 로드 (정렬 우선순위: 레벨 > 단계 > 시간)
+ */
 async function loadRanking() {
     const container = document.getElementById('content-ranking');
     if (!container) return;
@@ -576,12 +591,20 @@ async function loadRanking() {
 
         if (!rawData || rawData.length === 0) return;
 
-        // [1] 유저별 최고 기록 선별 (레벨 내림차순 -> 시간 오름차순)
+        // [1] 유저별 최고 기록 선별 (레벨 내림차순 -> 단계 내림차순 -> 시간 오름차순)
         const bestPerUser = rawData.sort((a, b) => {
+            // A. 고통 레벨 추출 및 비교 (숫자만 추출)
             const lvA = parseInt(String(a.level || 0).replace(/[^0-9]/g, '')) || 0;
             const lvB = parseInt(String(b.level || 0).replace(/[^0-9]/g, '')) || 0;
-            if (lvB !== lvA) return lvB - lvA; // 최고 레벨 우선
-            return String(a.time || "").localeCompare(String(b.time || "")); // 최단 시간 우선
+            if (lvB !== lvA) return lvB - lvA; // 1순위: 최고 레벨 우선
+
+            // B. 단계 추출 및 비교 (새로 추가된 로직)
+            const stgA = parseInt(String(a.stage || 0).replace(/[^0-9]/g, '')) || 0;
+            const stgB = parseInt(String(b.stage || 0).replace(/[^0-9]/g, '')) || 0;
+            if (stgB !== stgA) return stgB - stgA; // 2순위: 최고 단계 우선
+
+            // C. 최단 시간 비교
+            return String(a.time || "").localeCompare(String(b.time || "")); // 3순위: 최단 시간 우선
         }).filter((item, index, self) =>
             // 정렬된 상태에서 닉네임이 처음 등장하는 데이터(최고 기록)만 유지
             index === self.findIndex((t) => t.userId === item.userId)
@@ -592,13 +615,17 @@ async function loadRanking() {
             index === self.findIndex((t) => (
                 t.userId === item.userId && t.region === item.region &&
                 t.character === item.character && t.time === item.time &&
-                t.level === item.level && t.totalScore === item.totalScore
+                t.level === item.level && t.totalScore === item.totalScore &&
+                t.stage === item.stage && t.mode === item.mode
             ))
         );
 
-        // 2. 전체 데이터를 캐시에 저장 (검색 탭에서 전체 사용 가능)
+        // 2. 전체 데이터를 캐시에 저장 및 랭킹 표시
         rankingDataCache = uniqueData;
-        startRankingRotation();
+        
+        // renderRankingSlide를 호출하여 화면 갱신
+        if (typeof renderRankingSlide === 'function') renderRankingSlide();
+        
     } catch (error) {
         console.error("Ranking Load Error:", error);
     }
@@ -1314,4 +1341,55 @@ function goBackToHome() {
 
     // 3. 페이지 상단으로 스크롤 이동
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+
+let selectedGameMode = ''; // 현재 선택된 모드 저장용
+
+/**
+ * 1. 기록 등록하기 클릭 시 실행
+ */
+function openScanner() {
+    // 스캐너를 바로 여는 대신 모드 선택 모달을 오픈
+    document.getElementById('modeSelectModal').classList.remove('hidden');
+}
+
+function closeModeModal() {
+    const modeModal = document.getElementById('modeSelectModal');
+    if (modeModal) {
+        modeModal.classList.add('hidden');
+    }
+}
+// 1. 전역 변수 선언 (함수 밖 상단에 위치)
+let currentEntry = { game: '', mode: '' };
+/**
+ * 2. selectMode 함수 수정 (불필요한 fetch 제거 및 전역 translations 사용)
+ */
+async function selectMode(game, mode) {
+    currentEntry.game = game;
+    currentEntry.mode = mode;
+
+    const modeModal = document.getElementById('modeSelectModal');
+    const scannerModal = document.getElementById('scannerModal');
+    if (modeModal) modeModal.classList.add('hidden');
+    if (scannerModal) scannerModal.classList.remove('hidden');
+
+    const headerTitle = document.getElementById('scannerHeaderTitle');
+    if (headerTitle) {
+        const lang = localStorage.getItem('owlog_lang') || 'ko';
+        const recordKey = (mode === 'fissure') ? 'fissure_record' : 'rift_record';
+
+        // 이미 loadLang()에서 불러온 전역 translations 객체를 사용합니다.
+        if (translations[lang] && translations[lang][recordKey]) {
+            headerTitle.innerText = translations[lang][recordKey];
+            headerTitle.setAttribute('data-i18n', recordKey);
+        } else {
+            // 데이터가 없을 경우에만 대비책 작동
+            headerTitle.innerText = (mode === 'fissure') ? "공간의 틈새 기록" : "균열 기록";
+        }
+
+        headerTitle.style.color = (mode === 'fissure') ? '#2563eb' : '#9333ea';
+    }
+
+    if (typeof updateContent === 'function') updateContent();
 }

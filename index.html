@@ -133,7 +133,6 @@
     </header>
 
     <main class="flex-grow flex flex-col px-6 md:px-10 pt-10 max-w-md md:max-w-4xl mx-auto w-full transition-all">
-
         <div id="section-home">
             <div class="w-full relative mb-6 md:mb-8">
                 <input type="text" data-i18n-placeholder="placeholder_search"
@@ -229,6 +228,7 @@
                 </button>
             </div>
         </div>
+
         <!-- 랭킹 섹션 -->
         <div id="section-ranking" class="hidden mt-4 pb-20">
             <div class="px-2 mb-10">
@@ -300,6 +300,7 @@
                     style="object-position: center 20%;">
             </div>
         </div>
+
         <!-- 검색기록-->
         <div id="section-search" class="hidden mt+4">
 
@@ -404,14 +405,119 @@
             </a>
         </div>
     </nav>
+    <!--ㅅ모드 선택-->
 
+    <div id="modeSelectModal"
+        class="fixed inset-0 z-[60] hidden flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+        <div
+            class="bg-white border border-slate-200 w-full max-w-sm rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-150">
+
+            <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h2 data-i18n="modeModalTitle" class="text-sm font-black text-slate-700 uppercase tracking-tighter">
+                    Mission Select</h2>
+                <button onclick="closeModeModal()" class="text-slate-300 hover:text-slate-500 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="p-5 space-y-6">
+                <section>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div
+                            class="w-10 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shadow-sm overflow-hidden">
+                            <img src="./heroes/Yoiko.webp"
+                                style="object-position: center 20%; transform: scale(2) translateY(10px) translateX(-5px);"
+                                class="w-full h-full object-cover drop-shadow-sm">
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-black text-blue-600 uppercase tracking-widest">OWL</h3>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 pl-1">
+                        <button onclick="selectMode('OWL', 'fissure')"
+                            class="group w-full h-[45px] flex items-center px-4 bg-white border border-slate-200 hover:border-blue-500 hover:bg-blue-50/30 rounded-lg transition-all overflow-hidden">
+
+                            <div
+                                class="w-8 h-8 mr-3 rounded-md bg-blue-50 border border-blue-100 flex items-center justify-center group-hover:bg-blue-600 transition-colors shadow-sm">
+                                <i
+                                    class="fas fa-fire text-[10px] text-blue-500 group-hover:text-white group-hover:scale-125 transition-transform"></i>
+                            </div>
+
+                            <div class="flex flex-col items-start leading-tight">
+                                <span data-i18n="fissure" class="text-xs font-bold text-slate-700"></span>
+                                <span data-i18n="fissureSub"
+                                    class="text-[8px] text-slate-400 font-mono uppercase"></span>
+                            </div>
+                        </button>
+
+                        <button onclick="selectMode('OWL', 'rift')"
+                            class="group w-full h-[45px] flex items-center px-4 bg-white border border-slate-200 hover:border-purple-500 hover:bg-purple-50/30 rounded-lg transition-all overflow-hidden">
+
+                            <div
+                                class="w-8 h-8 mr-3 rounded-md bg-purple-50 border border-purple-100 flex items-center justify-center group-hover:bg-purple-600 transition-colors shadow-sm">
+                                <i
+                                    class="fas fa-bolt text-[10px] text-purple-500 group-hover:text-white group-hover:scale-125 transition-transform"></i>
+                            </div>
+
+                            <div class="flex flex-col items-start leading-tight">
+                                <span data-i18n="rift" class="text-xs font-bold text-slate-700"></span>
+                                <span data-i18n="riftSub" class="text-[8px] text-slate-400 font-mono uppercase"></span>
+                            </div>
+                        </button>
+
+                        <div
+                            class="w-full h-[45px] flex items-center px-4 bg-slate-50 border border-slate-100 rounded-lg opacity-50 cursor-not-allowed">
+                            <div class="w-8 h-8 mr-3 rounded-md bg-slate-200 flex items-center justify-center">
+                                <i class="fas fa-lock text-[10px] text-slate-400"></i>
+                            </div>
+                            <span data-i18n="battlefield" class="text-xs font-bold text-slate-400"></span>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div
+                            class="w-10 h-8 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center shadow-sm overflow-hidden">
+                            <img src="./sk_heroes/Trickster.webp"
+                                style="object-position: center 20%; transform: scale(1.2); "
+                                class="w-full h-full object-cover drop-shadow-sm">
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-black text-orange-600 uppercase tracking-widest">Soul Knight</h3>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 pl-1">
+                        <div
+                            class="w-full h-[45px] flex items-center px-4 bg-slate-50 border border-slate-100 rounded-lg opacity-50 cursor-not-allowed">
+                            <i class="fas fa-hourglass-start mr-3 text-slate-300"></i>
+                            <span data-i18n="void" class="text-xs font-bold text-slate-400"></span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="px-5 py-4 bg-slate-50 border-t border-slate-100 flex justify-center">
+                <button onclick="closeModeModal()" data-i18n="cancel"
+                    class="w-full py-2 text-sm font-black text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-[0.2em]">
+                    CANCEL
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!--스캔 모달-->
     <div id="scannerModal" class="fixed inset-0 bg-white z-[100] hidden overflow-y-auto no-scrollbar">
         <header class="flex justify-between items-center px-4 py-3 border-b border-gray-100 bg-white sticky top-0">
             <button onclick="closeScanner()"
                 class="w-10 h-10 flex items-center justify-center hover:bg-gray-50 rounded-full transition">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
-            <h1 class="text-lg font-black tracking-tighter uppercase" data-i18n="scanner_title">DATA SCANNER</h1>
+            <h1 id="scannerHeaderTitle" class="text-lg font-black tracking-tighter uppercase" data-i18n="scanner_title">
+                DATA SCANNER
+            </h1>
             <div class="w-10"></div>
         </header>
 
@@ -431,6 +537,7 @@
             <section class="bg-gray-50 p-5 md:p-8 rounded-3xl mb-6 shadow-inner">
                 <h3 class="text-[10px] md:text-xs font-black text-gray-400 mb-4 tracking-widest uppercase">User & Match
                     Info</h3>
+
                 <div class="space-y-4">
                     <div class="flex justify-between items-center text-sm md:text-base">
                         <span class="font-bold text-gray-400" data-i18n="label_userid">User ID</span>
@@ -452,6 +559,12 @@
                         <span class="font-bold text-gray-500" data-i18n="label_time">Time</span>
                         <span id="resTime" class="font-bold px-3 py-1 bg-white rounded-lg shadow-sm text-xs">-</span>
                     </div>
+
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="font-bold text-gray-500" data-i18n="label_stage">Stage</span>
+                        <span id="resStage"
+                            class="font-bold px-3 py-1 bg-white rounded-lg shadow-sm text-red-500 text-xs">-</span>
+                    </div>
                     <div class="flex justify-between items-center text-sm">
                         <span class="font-bold text-gray-500" data-i18n="label_level">Anguish</span>
                         <span id="resLevel"
@@ -463,6 +576,17 @@
                     </div>
                 </div>
             </section>
+            <!--<div id="debug-section" class="mt-6 p-4 bg-slate-900 rounded-xl hidden">
+                <p class="text-[10px] font-mono text-blue-400 mb-2">DEBUG: OCR RAW VIEW</p>
+                <div id="debug-canvas-container" class="flex flex-wrap gap-2 mb-4"></div>
+                <div id="debug-raw-text" class="text-[10px] font-mono text-gray-400 break-all whitespace-pre-wrap">
+                </div>
+            </div>
+
+            <button onclick="document.getElementById('debug-section').classList.toggle('hidden')"
+                class="mt-4 text-[10px] text-gray-400 underline">
+                Toggle Debug View
+            </button>-->
 
             <button id="saveBtn" onclick="saveRecord()" disabled data-i18n="btn_save"
                 class="w-full bg-black text-white py-4 md:py-5 rounded-2xl font-black text-sm md:text-base shadow-xl active:scale-95 transition disabled:bg-gray-300 disabled:cursor-not-allowed">

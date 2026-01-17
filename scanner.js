@@ -78,115 +78,153 @@ async function checkCharacterName(img, worker, lang) {
     });
     return match;
 }
-
 /**
- * 3. 메인 스캔 함수 (적 정보 제거 및 수치 보정 강화)
+ * OWLOG - OCR 스캐너 엔진 (초기 안정 좌표계 복구 및 기능 통합)
+ */
+/**
+ * OWLOG - OCR 스캐너 엔진 (사용자 지정 '니' 매핑 반영 버전)
  */
 async function runMainScan(img) {
     const currentLang = localStorage.getItem('owlog_lang') || 'en';
     const saveBtn = document.getElementById('saveBtn');
     const statusText = document.getElementById('status');
     const debugText = document.getElementById('debug-raw-text');
+    const debugContainer = document.getElementById('debug-canvas-container');
 
     saveBtn.disabled = true;
     statusText.innerText = (currentLang === 'ko') ? ">> 데이터 정밀 분석 중..." : ">> DEEP SCANNING...";
-    statusText.classList.remove('text-green-500', 'text-red-500');
     statusText.classList.add('text-blue-500', 'animate-pulse');
+    if (debugContainer) debugContainer.innerHTML = ''; 
 
+    // 인식이 가장 잘 되었던 기본 워커 설정 (한글+영어)
     const worker = await Tesseract.createWorker('kor+eng');
 
     try {
         const isCropped = (img.width / img.height) < 1.3;
 
-        // [좌표 설정] 가이드 이미지 기반 (적 처치 제거, 레벨 폭 확대)
-        // [수정] 적 처치(enemies) 삭제 및 level 영역 확장
+        /**
+         * [좌표 복구] 사용자님이 제공한 가장 정확한 초기 좌표계 적용
+         */
         const regions = {
-            time: { x: 0.73, y: 0.18, w: 0.23, h: 0.09 },
-            level: { x: 0.77, y: 0.58, w: 0.22, h: 0.09 }, // 폭을 0.22로 늘려 '11' 인식 대비
+            time:  { x: 0.73, y: 0.18, w: 0.23, h: 0.09 },
+            stage: { x: 0.77, y: 0.48, w: 0.22, h: 0.09 }, 
+            level: { x: 0.77, y: 0.58, w: 0.22, h: 0.09 }, 
             total: { x: 0.12, y: 0.92, w: 0.30, h: 0.07 }
         };
 
         if (!isCropped) {
-            Object.keys(regions).forEach(k => { regions[k].x = 0.45 + (regions[k].x * 0.55); });
+            Object.keys(regions).forEach(k => { 
+                // 전체 화면일 때의 $x$ 좌표 오프셋 계산
+                regions[k].x = 0.45 + (regions[k].x * 0.55); 
+            });
         }
 
-        async function scanRegion(roi) {
+        async function scanRegion(roi, labelName) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const sw = img.width * roi.w, sh = img.height * roi.h;
+            
             canvas.width = sw * 4; canvas.height = sh * 4;
+            // 대비(contrast) 3 설정으로 이미지 뭉개짐 방지
             ctx.filter = 'grayscale(1) contrast(3) brightness(1.1)';
             ctx.drawImage(img, img.width * roi.x, img.height * roi.y, sw, sh, 0, 0, canvas.width, canvas.height);
+
+            if (debugContainer) {
+                const wrapper = document.createElement('div');
+                wrapper.className = "flex flex-col items-center border border-slate-700 p-1 bg-slate-800";
+                const label = document.createElement('span');
+                label.className = "text-[8px] text-blue-300 mb-1 font-mono";
+                label.innerText = labelName;
+                wrapper.appendChild(label);
+                wrapper.appendChild(canvas);
+                canvas.style.width = "100px"; 
+                debugContainer.appendChild(wrapper);
+            }
+
             const { data } = await worker.recognize(canvas);
             return data.text.trim();
         }
 
-        // [수정] 적 정보 스캔 제거
-        const [detectedName, rawTime, rawLevel, rawTotal] = await Promise.all([
+        // 스캔 실행
+        const [detectedName, rawTime, rawStage, rawLevel, rawTotal] = await Promise.all([
             checkCharacterName(img, worker, currentLang),
-            scanRegion(regions.time),
-            scanRegion(regions.level),
-            scanRegion(regions.total)
+            scanRegion(regions.time, 'TIME'),
+            scanRegion(regions.stage, 'STAGE'),
+            scanRegion(regions.level, 'LEVEL'),
+            scanRegion(regions.total, 'TOTAL')
         ]);
 
         await initHeroSelect(currentLang, detectedName);
 
-        if (debugText) {
-            debugText.innerText = `[SCAN RESULT]\n- Name: ${detectedName}\n- Time: ${rawTime}\n- Level: ${rawLevel}\n- Total: ${rawTotal}`;
-        }
+        let res = { time: "00:00", stage: "1", level: "0", total: "0" };
 
-        let res = { time: "00:00", level: "0", total: "0" };
+        /**
+         * [추출 로직 수정] 
+         * '니', 'y', 'Y', ':' 등 도트 폰트 '4'로 오인되는 문자를 사전에 치환합니다.
+         */
+        const extractLastNumber = (text, defaultVal) => {
+            // 텍스트 전처리: '니', 'y', ':' 등을 '4'로 변경
+            let cleanedText = text.replace(/[니yY:]/g, '4');
+            
+            const nums = cleanedText.match(/\d+/g);
+            if (!nums) return defaultVal;
+            
+            let val = parseInt(nums[nums.length - 1]) || defaultVal;
+            // 11단계 제한 로직 유지
+            return (val > 11 ? 11 : val).toString();
+        };
 
-        // [시간 보정]
-        // A. [시간] 스프레드시트 '분:초' 인식용 보정
-        // [수정] 홑따옴표(')를 추가하여 스프레드시트의 자동 시간 변환 방지
+        res.stage = extractLastNumber(rawStage, "1");
+        res.level = extractLastNumber(rawLevel, "0");
+
+        // 시간 보정
         const tM = rawTime.match(/\d{1,2}[:;.\s]\d{2}/);
-        if (tM) {
-            const timeStr = tM[0].replace(/[;.\s]/g, ':').padStart(5, '0'); // MM:SS 추출
-            // 앞에 '를 붙여 "문자열"임을 명시 (시트에서 27:45로 정확히 표시됨)
-            res.time = `${timeStr}`;
-        }
-        // B. [레벨] 배율 기호 제외하고 마지막 숫자 '11'만 추출
-        const lvNumbers = rawLevel.replace(/[SIl|]/g, '1').match(/\d+/g);
-        if (lvNumbers) res.level = lvNumbers[lvNumbers.length - 1];
+        if (tM) res.time = tM[0].replace(/[;.\s]/g, ':').padStart(5, '0');
 
-        // C. [합계] 마지막 숫자 뭉치에서 뒤의 5자리만 취함
+        // 합계 보정
         const totalNums = rawTotal.match(/\d+/g);
-        if (totalNums) {
-            let sStr = totalNums[totalNums.length - 1];
-            if (parseInt(sStr) > 99999) sStr = sStr.slice(-5); // 5자리 제한
-            res.total = parseInt(sStr).toLocaleString();
+        if (totalNums) res.total = parseInt(totalNums.join('')).toLocaleString();
+
+        if (debugText) {
+            debugText.innerText = `[RAW DATA]\nTime: ${rawTime}\nStage: ${rawStage}\nLevel: ${rawLevel}\nTotal: ${rawTotal}`;
         }
 
-        // [추가] 스캔 성공 시 원본 데이터를 변수에 안전하게 보관
+        // 메모리 저장
         lastScannedData = {
-            time: res.time,
-            level: res.level,
+            time: res.time, level: res.level, stage: res.stage,
             totalScore: parseInt(res.total.replace(/,/g, ''))
         };
 
-        // UI 업데이트 (화면에 보여주는 용도일 뿐, 저장 시에는 쓰지 않음)
+        // UI 업데이트
+        document.getElementById('resStage').innerText = res.stage;
         document.getElementById('resTime').innerText = res.time;
         document.getElementById('resLevel').innerText = res.level;
         document.getElementById('resTotal').innerText = res.total;
-        // 최종 유효성 검사
-        if (res.time !== "00:00" && res.level !== "0") {
+
+        // 최종 유효성 검사 (고통 레벨이 0보다 커야 함)
+        const totalNum = lastScannedData.totalScore;
+        const isDetected = res.time !== "00:00" && res.level !== "0";
+
+        if (isDetected && totalNum > 10000) {
             saveBtn.disabled = false;
             statusText.innerText = (currentLang === 'ko') ? "분석 완료" : "COMPLETE";
             statusText.classList.replace('text-blue-500', 'text-green-500');
         } else {
+            saveBtn.disabled = true;
             statusText.classList.replace('text-blue-500', 'text-red-500');
-            statusText.innerText = (currentLang === 'ko') ? "인식 실패" : "SCAN FAILED";
+            statusText.innerText = (isDetected && totalNum <= 10000)
+                ? (currentLang === 'ko' ? "10,000점 이하 등록 불가" : "SCORE TOO LOW")
+                : (currentLang === 'ko' ? "인식 실패 (데이터 확인)" : "SCAN FAILED");
         }
 
     } catch (err) {
         console.error(err);
         statusText.innerText = "ERROR";
     } finally {
+        statusText.classList.remove('animate-pulse');
         await worker.terminate();
     }
 }
-
 /**
  * 4. 이미지 크로퍼 및 유틸리티
  */
