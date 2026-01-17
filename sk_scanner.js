@@ -68,7 +68,7 @@ async function recognizeSKRegion(canvas, region, label) {
  * 크랍 확정 및 최종 분석
  */
 async function confirmSKCrop(croppedCanvas) {
-    closeCropModal();
+   // closeCropModal();
     document.getElementById('sk-debug-canvas-container').innerHTML = '';
     document.getElementById('sk-debug-raw-text').innerText = '';
     
