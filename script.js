@@ -292,7 +292,7 @@ function renderRankingSlide() {
                 <span class="w-1 h-4 rounded-sm ${barColorClass}"></span>
                 ${title}
             </h3>
-            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Top 5</span>
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Top 6</span>
         `;
         section.appendChild(header);
 
@@ -549,7 +549,7 @@ function renderRankingSlide() {
                 <span class="w-1 h-4 rounded-sm ${barColorClass}"></span>
                 ${title}
             </h3>
-            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Top 5</span>
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Top 6</span>
         `;
         section.appendChild(header);
 
