@@ -1,7 +1,6 @@
 /**
  * OWLOG - sk_scanner.js
  */
-let skHeroDataCache = null; // [추가] SK용 전역 변수
 let skLastScannedData = { time: '00:00', mode: 'Unknown', totalScore: 0, level: 0 };
 
 
