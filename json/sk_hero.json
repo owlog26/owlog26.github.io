@@ -1,0 +1,394 @@
+{
+  "characters": [
+    {
+      "english_name": "Knight",
+      "korean_name": "기사",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Rogue",
+      "korean_name": "도적",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Wizard",
+      "korean_name": "법사",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Assassin",
+      "korean_name": "암살자",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Alchemist",
+      "korean_name": "연금술사",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Engineer",
+      "korean_name": "엔지니어",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Vampire",
+      "korean_name": "흡혈귀",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Paladin",
+      "korean_name": "성기사",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Elf",
+      "korean_name": "정령",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Werewolf",
+      "korean_name": "늑대",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Priestess",
+      "korean_name": "사제",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Druid",
+      "korean_name": "드루이드",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Robot",
+      "korean_name": "로봇",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Berserker",
+      "korean_name": "광전사",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Necromancer",
+      "korean_name": "사령술사",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Officer",
+      "korean_name": "오피서",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Taoist",
+      "korean_name": "도사",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "AirBender",
+      "korean_name": "에어벤더",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Demonmancer",
+      "korean_name": "데몬맨서",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Miner",
+      "korean_name": "광부",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Trap Master",
+      "korean_name": "덫 마스터",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Costume Prince",
+      "korean_name": "코스튬 왕자",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Physicist",
+      "korean_name": "물리학자",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Swordmaster",
+      "korean_name": "검 마스터",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Lancer",
+      "korean_name": "창기병",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Warliege",
+      "korean_name": "전쟁군왕",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Arcane Knight",
+      "korean_name": "비전 기사",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Astromancer",
+      "korean_name": "점성술사",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Fighter",
+      "korean_name": "투사",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Trickster",
+      "korean_name": "트릭스터",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Bard",
+      "korean_name": "음유시인",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Gunner",
+      "korean_name": "사수",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Machina",
+      "korean_name": "마키나",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Captain",
+      "korean_name": "선장",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Inter-dimension Traveler",
+      "korean_name": "차원 여행자",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Time Traveling Ninja",
+      "korean_name": "시간 여행 닌자",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Element Envoy",
+      "korean_name": "원소의 호위자",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "The Beheaded",
+      "korean_name": "참수자",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    },
+    {
+      "english_name": "Special Forces",
+      "korean_name": "스페셜 포스",
+      "skills": [
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] },
+        { "skill_name": "", "bonuses": ["", "", "", ""] }
+      ]
+    }
+  ]
+}
