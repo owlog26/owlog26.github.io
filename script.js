@@ -1,7 +1,7 @@
 /**
  * OWLOG - script.js
  */
-let currentModeTab = "Rift"; // 기본값 설정
+let currentModeTab = "Classic"; // 기본값 설정
 let translations = {};
 // ISO 3166-1 alpha-2 전체 리스트 (US, KR 우선 배치 후 알파벳순)
 const isoCodes = [
