@@ -2056,3 +2056,15 @@ function closeCropModal() {
         cropper = null;
     }
 }
+
+function initSKScanner() {
+    const skInput = document.getElementById('skImageInput');
+    // 이미 이벤트가 등록되어 있는지 확인하거나, 한 번만 실행되도록 처리
+    if (skInput && !skInput.dataset.bound) {
+        skInput.onchange = handleSKImageUpload;
+        skInput.dataset.bound = "true";
+    }
+    // 데이터 로드는 모달을 열 때마다 갱신해도 무방함
+    populateSKRegions();
+    loadSKHeroData();
+}
