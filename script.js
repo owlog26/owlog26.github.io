@@ -272,8 +272,8 @@ async function saveRecord(event) {
             alert(lang === 'ko' ? "기록이 성공적으로 저장되었습니다!" : "Record saved successfully!");
             location.reload(); // [추가] 페이지 새로고침
         } else {
-          //  console.error("Save Error:", error);
-          //  alert(lang === 'ko' ? "서버 통신 에러가 발생했습니다." : "Server error occurred.");
+            //  console.error("Save Error:", error);
+            //  alert(lang === 'ko' ? "서버 통신 에러가 발생했습니다." : "Server error occurred.");
         }
     } finally {
         // 새로고침이 일어나기 전까지 버튼 상태 유지
@@ -490,7 +490,7 @@ function renderRankingSlide() {
             objectPosition = "center 10%"; // 세로 위치만 고정
             imageScale = "scale(1.8) translateX(-10px)";
         }
-
+        const modeName = (lang === 'ko') ? "균열" : "Rift";
 
         const card = document.createElement('div');
         // md:p-4 이상으로 PC에서 카드 크기도 살짝 키움
@@ -518,7 +518,9 @@ function renderRankingSlide() {
                     ${item.userId}
                 </span>
                     </div>
-                    <span class="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mt-0.5">${displayName}</span>
+                    <span class="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mt-0.5">
+                ${modeName} <span class="mx-0.5">•</span> ${displayName}
+            </span>
                 </div>
             </div>
             <div class="flex flex-col items-end gap-1">
@@ -1304,12 +1306,12 @@ async function loadMainRanking() {
 function goBackToHome() {
     // 1. 메인 탭을 홈으로 전환합니다.
     switchTab('home');
-    
+
     // 2. URL 파라미터가 있다면 제거하여 깨끗한 상태로 만듭니다 (선택 사항)
     if (window.location.search.includes('id=')) {
         window.history.replaceState({}, document.title, window.location.pathname);
     }
-    
+
     // 3. 페이지 상단으로 스크롤 이동
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }

@@ -51,9 +51,11 @@
     "btn_save": "기록 저장하기",
     "msg_save_ok": "기록이 분석되었습니다!",
     "msg_scan_first": "데이터를 먼저 스캔해주세요.",
-    "btn_back": "< 돌아가기"
+    "btn_back": "< 돌아가기",
+    "mode_rift": "균열"
   },
   "en": {
+    "mode_rift": "Rift",
     "btn_back": "< Back",
      "how_to_register": "How to Register",
     "web_title": "OWLOG - Check your rift record.",
