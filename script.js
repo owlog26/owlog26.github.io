@@ -354,6 +354,7 @@ function renderRankingSlide() {
             let imageScale = "scale(1.3)";
             if (englishName === "Alessia") objectPosition = "center 40%";
             if (englishName === "Yoiko") { objectPosition = "center 10%"; imageScale = "scale(1.8) translateX(-5px)"; }
+            if (englishName === "Aorvion") { objectPosition = "center 10%"; imageScale = "scale(2) translateX(10px)"; }
             if (englishName === "Vesper") { objectPosition = "center 30%"; imageScale = "scale(1.7)"; }
             if (englishName === "Jadetalon") { objectPosition = "center -20%"; imageScale = "scale(2) translateX(10px)"; }
             if (englishName === "Adelvyn") { objectPosition = "center 30%"; imageScale = "scale(1.3) translateX(-10px)"; }
@@ -627,7 +628,8 @@ function renderRankingSlide() {
             let objectPosition = "center 10%";
             let imageScale = "scale(1.3)";
             if (englishName === "Alessia") objectPosition = "center 40%";
-            if (englishName === "Yoiko") { objectPosition = "center 10%"; imageScale = "scale(1.8) translateX(-5px)"; }
+            if (englishName === "Aorvion") { objectPosition = "center 10%"; imageScale = "scale(2) translateX(10px)"; }
+            if (englishName === "Yoiko") { objectPosition = "center 10%"; imageScale = "scale(1.8) translateX(-8px)"; }
             if (englishName === "Vesper") { objectPosition = "center 30%"; imageScale = "scale(1.7)"; }
             if (englishName === "Jadetalon") { objectPosition = "center -20%"; imageScale = "scale(2) translateX(10px)"; }
             if (englishName === "Adelvyn") { objectPosition = "center 30%"; imageScale = "scale(1.3) translateX(-10px)"; }
