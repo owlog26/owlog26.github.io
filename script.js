@@ -2078,55 +2078,64 @@ function initSKScanner() {
     loadSKHeroData();
 }
 
+
 /**
- * OWLOG - 캐릭터별 글로벌 랭킹 리스트 렌더링
- * hero.json의 모든 영웅을 표시하고 각 모드별 최고 기록(유저/시간)을 서브 텍스트로 보여줍니다.
+ * OWLOG - 캐릭터별 글로벌 랭킹 리스트 (개선 버전)
+ * 겹침 현상 해결, 국기 추가, 데이터 있는 캐릭터 상단 정렬 적용
  */
 function renderSKRankingSlide() {
     const lang = localStorage.getItem('owlog_lang') || 'ko';
     const container = document.getElementById('content-sk-ranking');
 
-    // 1. 필수 데이터 캐시 확인 (rankingDataCache, heroDataCache는 script.js 전역 변수)
     if (!container || !rankingDataCache.length || !heroDataCache || !translations[lang]) return;
 
-    // 2. 컨테이너 초기화 및 레이아웃 설정
     container.innerHTML = '';
-    // 모바일 1열, PC 2열 그리드로 설정하여 가독성 확보
-    container.className = "mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 md:col-span-2";
+    // 모바일에서 카드가 잘리지 않도록 column 간격 조정
+    container.className = "mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2";
 
-    // 3. 헤더 생성
+    // 1. 데이터 분석 및 영웅 리스트 정렬 (기록 있는 캐릭터 우선)
+    const sortedHeroes = [...heroDataCache.characters].map(hero => {
+        const records = rankingDataCache.filter(r => 
+            r.character === hero.english_name || r.character === hero.korean_name
+        );
+        return { ...hero, records };
+    }).sort((a, b) => b.records.length - a.records.length);
+
+    // 2. 헤더 생성
     const header = document.createElement('div');
     header.className = "flex items-center justify-between px-1 mb-1 md:col-span-2"; 
     header.innerHTML = `
         <h3 class="font-bold text-sm md:text-base flex items-center gap-2 text-gray-800">
             <span class="w-1 h-4 rounded-sm bg-blue-500"></span>
-            <span data-i18n="character_leaderboard">Character Rankings</span>
+            <span data-i18n="character_leaderboard">Global Best by Hero</span>
         </h3>
         <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Global Best</span>
     `;
     container.appendChild(header);
 
-    // 4. hero.json의 전체 영웅 순회
-    heroDataCache.characters.forEach((hero) => {
+    // 3. 정렬된 영웅 리스트 렌더링
+    sortedHeroes.forEach((hero) => {
         const englishName = hero.english_name;
         const displayName = lang === 'ko' ? hero.korean_name : hero.english_name;
         const fileName = englishName.replace(/\s+/g, '_');
         const imgPath = `./heroes/${fileName}.webp`;
 
-        // 해당 영웅의 모든 기록 필터링
-        const heroRecords = rankingDataCache.filter(item => 
-            item.character === hero.english_name || item.character === hero.korean_name
-        );
+        // 모드별 최고 기록 추출
+        const modes = [
+            { id: 'Classic', label: translations[lang]['fissureSub'] || 'Classic' },
+            { id: 'Rift', label: translations[lang]['riftSub'] || 'Rift' },
+            { id: 'Battlefield', label: 'Battlefield' },
+            { id: 'SK', label: 'SK' }
+        ];
 
-        // 5. 모드별(Classic, Rift, Battlefield, SK) 최고 기록 추출
-        const modes = ['Classic', 'Rift', 'Battlefield', 'SK'];
         let statsHTML = "";
-
         modes.forEach(mode => {
-            const modeRecords = heroRecords.filter(r => r.mode && r.mode.trim().toLowerCase() === mode.toLowerCase());
+            const modeRecords = hero.records.filter(r => 
+                r.mode && r.mode.trim().toLowerCase() === mode.id.toLowerCase()
+            );
             
             if (modeRecords.length > 0) {
-                // 모드별 최고 기록 선별 (레벨 > 단계 > 시간 순 정렬 후 상위 1개)
+                // 최고 기록 선별 (레벨/단계 우선)
                 const best = modeRecords.sort((a, b) => {
                     const lvA = parseInt(String(a.level || 0).replace(/[^0-9]/g, '')) || 0;
                     const lvB = parseInt(String(b.level || 0).replace(/[^0-9]/g, '')) || 0;
@@ -2137,25 +2146,31 @@ function renderSKRankingSlide() {
                     return String(a.time).localeCompare(String(b.time));
                 })[0];
 
+                const regionCode = (best.region || 'us').toLowerCase();
+                const flagUrl = `https://flagcdn.com/w40/${regionCode}.png`;
+
+                // 텍스트 겹침 방지를 위해 flex 구조로 설계
                 statsHTML += `
-                    <div class="flex justify-between items-center text-[9px] leading-tight">
-                        <span class="text-gray-400 font-bold uppercase w-12">${mode}</span>
-                        <span class="text-gray-700 font-black truncate max-w-[70px] mr-1">${best.userId}</span>
-                        <span class="text-gray-400 tabular-nums ml-auto">${best.time}</span>
+                    <div class="flex items-center justify-between text-[10px] gap-2 py-0.5">
+                        <span class="text-gray-400 font-black uppercase w-14 flex-shrink-0">${mode.label}</span>
+                        <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                            <img src="${flagUrl}" class="w-3.5 h-2.5 object-cover rounded-[1px] shadow-sm flex-shrink-0">
+                            <span class="text-gray-700 font-bold truncate">${best.userId}</span>
+                        </div>
+                        <span class="text-gray-400 tabular-nums font-medium flex-shrink-0">${best.time}</span>
                     </div>
                 `;
             }
         });
 
         if (statsHTML === "") {
-            statsHTML = `<p class="text-[9px] text-gray-300 italic">No records yet</p>`;
+            statsHTML = `<p class="text-[10px] text-gray-300 italic py-1">No records yet</p>`;
         }
 
-        // 6. 카드 생성 (기존 p-3 콤팩트 스타일 적용)
+        // 카드 생성 및 구도 보정
         const card = document.createElement('div');
-        card.className = "flex items-center gap-4 p-3 bg-white rounded-xl border border-gray-100 shadow-sm transition-all hover:shadow-md";
+        card.className = "flex items-start gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm transition-all hover:shadow-md h-auto";
 
-        // 캐릭터별 구도 보정 로직 (기존 script.js 설정 유지)
         let objPos = "center 10%";
         let transform = "scale(1.3)";
         if (englishName === "Yoiko") { objPos = "center 10%"; transform = "scale(1.8) translateX(-5px)"; }
@@ -2165,15 +2180,15 @@ function renderSKRankingSlide() {
         if (englishName === "Peddler") { objPos = "center 10%"; transform = "scale(1) translateX(5px)"; }
 
         card.innerHTML = `
-            <div class="w-14 h-14 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0 relative">
-                <img src="${imgPath}" onerror="this.src='https://via.placeholder.com/56x56?text=Hero'" 
+            <div class="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0 relative">
+                <img src="${imgPath}" onerror="this.src='https://via.placeholder.com/64x64?text=Hero'" 
                      class="w-full h-full object-cover" style="object-position: ${objPos}; transform: ${transform};">
             </div>
             <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="font-black text-xs text-gray-900 uppercase truncate">${displayName}</span>
+                <div class="mb-1.5">
+                    <span class="font-black text-sm text-gray-900 uppercase tracking-tight">${displayName}</span>
                 </div>
-                <div class="space-y-0.5">
+                <div class="flex flex-col">
                     ${statsHTML}
                 </div>
             </div>
