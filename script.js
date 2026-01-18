@@ -1922,7 +1922,9 @@ function switchModeTab(mode) {
  * [script.js] 소울 나이트 전용 랭킹 슬라이드 렌더링
  * 콤팩트 스타일(p-3) 및 레이아웃 최적화 버전
  */
-function renderSKRankingSlide() {
+
+
+function renderSKRankingSlid1e() {
     const lang = localStorage.getItem('owlog_lang') || 'ko';
     const container = document.getElementById('content-sk-ranking');
 
@@ -2074,4 +2076,108 @@ function initSKScanner() {
     // 데이터 로드는 모달을 열 때마다 갱신해도 무방함
     populateSKRegions();
     loadSKHeroData();
+}
+
+/**
+ * OWLOG - 캐릭터별 글로벌 랭킹 리스트 렌더링
+ * hero.json의 모든 영웅을 표시하고 각 모드별 최고 기록(유저/시간)을 서브 텍스트로 보여줍니다.
+ */
+function renderSKRankingSlide() {
+    const lang = localStorage.getItem('owlog_lang') || 'ko';
+    const container = document.getElementById('content-sk-ranking');
+
+    // 1. 필수 데이터 캐시 확인 (rankingDataCache, heroDataCache는 script.js 전역 변수)
+    if (!container || !rankingDataCache.length || !heroDataCache || !translations[lang]) return;
+
+    // 2. 컨테이너 초기화 및 레이아웃 설정
+    container.innerHTML = '';
+    // 모바일 1열, PC 2열 그리드로 설정하여 가독성 확보
+    container.className = "mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 md:col-span-2";
+
+    // 3. 헤더 생성
+    const header = document.createElement('div');
+    header.className = "flex items-center justify-between px-1 mb-1 md:col-span-2"; 
+    header.innerHTML = `
+        <h3 class="font-bold text-sm md:text-base flex items-center gap-2 text-gray-800">
+            <span class="w-1 h-4 rounded-sm bg-blue-500"></span>
+            <span data-i18n="character_leaderboard">Character Rankings</span>
+        </h3>
+        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Global Best</span>
+    `;
+    container.appendChild(header);
+
+    // 4. hero.json의 전체 영웅 순회
+    heroDataCache.characters.forEach((hero) => {
+        const englishName = hero.english_name;
+        const displayName = lang === 'ko' ? hero.korean_name : hero.english_name;
+        const fileName = englishName.replace(/\s+/g, '_');
+        const imgPath = `./heroes/${fileName}.webp`;
+
+        // 해당 영웅의 모든 기록 필터링
+        const heroRecords = rankingDataCache.filter(item => 
+            item.character === hero.english_name || item.character === hero.korean_name
+        );
+
+        // 5. 모드별(Classic, Rift, Battlefield, SK) 최고 기록 추출
+        const modes = ['Classic', 'Rift', 'Battlefield', 'SK'];
+        let statsHTML = "";
+
+        modes.forEach(mode => {
+            const modeRecords = heroRecords.filter(r => r.mode && r.mode.trim().toLowerCase() === mode.toLowerCase());
+            
+            if (modeRecords.length > 0) {
+                // 모드별 최고 기록 선별 (레벨 > 단계 > 시간 순 정렬 후 상위 1개)
+                const best = modeRecords.sort((a, b) => {
+                    const lvA = parseInt(String(a.level || 0).replace(/[^0-9]/g, '')) || 0;
+                    const lvB = parseInt(String(b.level || 0).replace(/[^0-9]/g, '')) || 0;
+                    if (lvB !== lvA) return lvB - lvA;
+                    const stgA = parseInt(a.stage) || 0;
+                    const stgB = parseInt(b.stage) || 0;
+                    if (stgB !== stgA) return stgB - stgA;
+                    return String(a.time).localeCompare(String(b.time));
+                })[0];
+
+                statsHTML += `
+                    <div class="flex justify-between items-center text-[9px] leading-tight">
+                        <span class="text-gray-400 font-bold uppercase w-12">${mode}</span>
+                        <span class="text-gray-700 font-black truncate max-w-[70px] mr-1">${best.userId}</span>
+                        <span class="text-gray-400 tabular-nums ml-auto">${best.time}</span>
+                    </div>
+                `;
+            }
+        });
+
+        if (statsHTML === "") {
+            statsHTML = `<p class="text-[9px] text-gray-300 italic">No records yet</p>`;
+        }
+
+        // 6. 카드 생성 (기존 p-3 콤팩트 스타일 적용)
+        const card = document.createElement('div');
+        card.className = "flex items-center gap-4 p-3 bg-white rounded-xl border border-gray-100 shadow-sm transition-all hover:shadow-md";
+
+        // 캐릭터별 구도 보정 로직 (기존 script.js 설정 유지)
+        let objPos = "center 10%";
+        let transform = "scale(1.3)";
+        if (englishName === "Yoiko") { objPos = "center 10%"; transform = "scale(1.8) translateX(-5px)"; }
+        if (englishName === "Alessia") objPos = "center 40%";
+        if (englishName === "Vesper") { objPos = "center 30%"; transform = "scale(1.7)"; }
+        if (englishName === "Jadetalon") { objPos = "center -20%"; transform = "scale(2) translateX(10px)"; }
+        if (englishName === "Peddler") { objPos = "center 10%"; transform = "scale(1) translateX(5px)"; }
+
+        card.innerHTML = `
+            <div class="w-14 h-14 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0 relative">
+                <img src="${imgPath}" onerror="this.src='https://via.placeholder.com/56x56?text=Hero'" 
+                     class="w-full h-full object-cover" style="object-position: ${objPos}; transform: ${transform};">
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="font-black text-xs text-gray-900 uppercase truncate">${displayName}</span>
+                </div>
+                <div class="space-y-0.5">
+                    ${statsHTML}
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
 }
