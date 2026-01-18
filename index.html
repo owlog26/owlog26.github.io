@@ -154,12 +154,12 @@
                     <button id="home-tab-ranking" onclick="switchHomeTab('ranking')"
                         class="flex-1 py-4 text-center text-[13px] md:text-sm tab-active transition-all"
                         data-i18n="tab_ranking">
-                        Ranking
+                        Grand slam
                     </button>
                     <button id="home-tab-sk-ranking" onclick="switchHomeTab('sk_ranking')"
                         class="flex-1 py-4 text-center text-[13px] md:text-sm text-gray-400 font-medium transition-all"
                         data-i18n="tab_sk_ranking">
-                        Ranking
+                        By Character
                     </button>
                     <button id="home-tab-guide" onclick="switchHomeTab('guide')"
                         class="flex-1 py-4 text-center text-[13px] md:text-sm text-gray-400 font-medium transition-all"
@@ -249,13 +249,7 @@
         </div>
 
         <!-- 랭킹 섹션 -->
-        <div id="section-ranking" class="hidden mt-4 pb-20">
-            <div class="px-2 mb-10">
-                <h2 class="text-4xl md:text-5xl font-black tracking-tighter uppercase mb-2" data-i18n="rank_page_title">
-                    Ranking</h2>
-                <p class="text-sm md:text-base font-bold text-gray-400" data-i18n="rank_page_subtitle">전세계 랭킹을 확인해보세요.
-                </p>
-            </div>
+        <div id="section-ranking" class="hidden mt-0 pb-20">  
             <div id="mode-tabs" class="flex p-1 bg-gray-100 rounded-2xl w-full mb-4">
                 <button onclick="switchModeTab('Classic')" id="tab-classic"
                     class="flex-1 py-3 text-sm font-bold rounded-xl transition-all bg-black text-white shadow-sm"
