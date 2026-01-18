@@ -2077,29 +2077,25 @@ function initSKScanner() {
     populateSKRegions();
     loadSKHeroData();
 }
+
+
 /**
- * OWLOG - 캐릭터별 글로벌 랭킹 리스트 (최종 수정본)
- * 레이아웃: 모드 | 국기 닉네임 (상단), 시간 (닉네임 하단)
- * 정렬: 기록이 있는 캐릭터 우선 상단 노출
+ * OWLOG - 캐릭터별 글로벌 리더보드 (가로 스크롤 및 레이아웃 개선 버전)
+ * 구조: 캐릭터명 + [모드명 / 국기 닉네임 시간] (가로 스크롤)
  */
 function renderSKRankingSlide() {
     const lang = localStorage.getItem('owlog_lang') || 'ko';
     const container = document.getElementById('content-sk-ranking');
 
-    // [1] 필수 데이터 및 번역 객체 로드 확인
-    if (!container || !rankingDataCache || rankingDataCache.length === 0 || !heroDataCache || !translations[lang]) {
-        return;
-    }
+    if (!container || !rankingDataCache.length || !heroDataCache || !translations[lang]) return;
 
     container.innerHTML = '';
-    // PC 2열, 모바일 1열 그리드 설정
-    container.className = "mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2";
+    container.className = "mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 md:col-span-2";
 
-    // [2] 번역 키 적용 (idle.json에 해당 키가 있어야 함)
-    const titleText = translations[lang]['character_leaderboard'] || "Global Best by Hero";
+    const titleText = translations[lang]['character_leaderboard'] || "Character Leaderboard";
     const subTitleText = translations[lang]['global_best'] || "Global Best";
 
-    // [3] 영웅 정렬: 기록(records)이 많은 캐릭터를 상단으로
+    // 1. 데이터가 있는 캐릭터를 상단으로 정렬
     const sortedHeroes = [...heroDataCache.characters].map(hero => {
         const records = rankingDataCache.filter(r => 
             r.character === hero.english_name || r.character === hero.korean_name
@@ -2107,7 +2103,7 @@ function renderSKRankingSlide() {
         return { ...hero, records };
     }).sort((a, b) => b.records.length - a.records.length);
 
-    // [4] 섹션 헤더 생성
+    // 2. 헤더 생성
     const header = document.createElement('div');
     header.className = "flex items-center justify-between px-1 mb-1 md:col-span-2"; 
     header.innerHTML = `
@@ -2119,7 +2115,7 @@ function renderSKRankingSlide() {
     `;
     container.appendChild(header);
 
-    // [5] 캐릭터 카드 생성
+    // 3. 캐릭터 카드 생성
     sortedHeroes.forEach((hero) => {
         const englishName = hero.english_name;
         const displayName = lang === 'ko' ? hero.korean_name : hero.english_name;
@@ -2133,14 +2129,13 @@ function renderSKRankingSlide() {
             { id: 'SK', label: 'SK' }
         ];
 
-        let statsHTML = "";
+        let modesHTML = "";
         modes.forEach(mode => {
             const modeRecords = hero.records.filter(r => 
                 r.mode && r.mode.trim().toLowerCase() === mode.id.toLowerCase()
             );
             
             if (modeRecords.length > 0) {
-                // 모드별 최고 기록 선별 (오류 수정됨)
                 const best = [...modeRecords].sort((a, b) => {
                     const lvA = parseInt(String(a.level || 0).replace(/[^0-9]/g, '')) || 0;
                     const lvB = parseInt(String(b.level || 0).replace(/[^0-9]/g, '')) || 0;
@@ -2148,37 +2143,38 @@ function renderSKRankingSlide() {
                     const stgA = parseInt(a.stage) || 0;
                     const stgB = parseInt(b.stage) || 0;
                     if (stgB !== stgA) return stgB - stgA;
-                    // 시간은 문자열 비교 (오름차순)
                     return String(a.time).localeCompare(String(b.time));
                 })[0];
 
                 const regionCode = (best.region || 'us').toLowerCase();
                 const flagUrl = `https://flagcdn.com/w40/${regionCode}.png`;
 
-                // [레이아웃] 모드 | 국기 닉네임 (상단), 시간 (하단)
-                statsHTML += `
-                    <div class="flex items-start gap-3 py-2 border-t border-gray-50 first:border-0">
-                        <span class="text-[10px] font-black text-gray-400 uppercase w-12 flex-shrink-0 pt-0.5 border-r border-gray-100 pr-1">${mode.label}</span>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-1.5 mb-0.5">
-                                <img src="${flagUrl}" class="w-3.5 h-2.5 object-cover rounded-[1px] shadow-sm">
+                // 개별 모드 아이템 (가로 스크롤용)
+                modesHTML += `
+                    <div class="flex-shrink-0 w-44 bg-gray-50/50 rounded-xl p-2.5 border border-gray-100">
+                        <div class="text-[9px] font-black text-blue-500 uppercase tracking-tighter mb-1.5 border-b border-blue-100/50 pb-1">
+                            ${mode.label}
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <img src="${flagUrl}" class="w-3.5 h-2.5 object-cover rounded-[1px] shadow-sm flex-shrink-0">
                                 <span class="text-[11px] font-bold text-gray-800 truncate">${best.userId}</span>
                             </div>
-                            <div class="text-[10px] text-gray-400 font-medium tabular-nums pl-5 italic">${best.time}</div>
+                            <span class="text-[10px] text-gray-400 font-bold tabular-nums">${best.time}</span>
                         </div>
                     </div>
                 `;
             }
         });
 
-        if (statsHTML === "") {
-            statsHTML = `<p class="text-[10px] text-gray-300 italic py-1">No records yet</p>`;
+        if (modesHTML === "") {
+            modesHTML = `<div class="text-[10px] text-gray-300 italic px-2">No records yet</div>`;
         }
 
         const card = document.createElement('div');
-        card.className = "flex items-start gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm transition-all hover:shadow-md";
+        card.className = "bg-white rounded-2xl border border-gray-100 shadow-sm transition-all hover:shadow-md overflow-hidden";
 
-        // 캐릭터별 구도 보정 로직
+        // 캐릭터 이미지 구도 보정
         let objPos = "center 10%";
         let transform = "scale(1.3)";
         if (englishName === "Yoiko") { objPos = "center 10%"; transform = "scale(1.8) translateX(-5px)"; }
@@ -2188,19 +2184,17 @@ function renderSKRankingSlide() {
         if (englishName === "Peddler") { objPos = "center 10%"; transform = "scale(1) translateX(5px)"; }
 
         card.innerHTML = `
-            <div class="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0 relative">
-                <img src="${imgPath}" onerror="this.src='https://via.placeholder.com/64x64?text=Hero'" 
-                     class="w-full h-full object-cover" style="object-position: ${objPos}; transform: ${transform};">
+            <div class="flex items-center gap-3 p-3 border-b border-gray-50">
+                <div class="w-10 h-10 rounded-lg bg-gray-50 border border-gray-100 overflow-hidden relative flex-shrink-0">
+                    <img src="${imgPath}" onerror="this.src='https://via.placeholder.com/40x40?text=Hero'" 
+                         class="w-full h-full object-cover" style="object-position: ${objPos}; transform: ${transform};">
+                </div>
+                <span class="font-black text-xs text-gray-900 uppercase tracking-tight">${displayName}</span>
             </div>
-            <div class="flex-1 min-w-0">
-                <div class="mb-2">
-                    <span class="font-black text-sm text-gray-900 uppercase tracking-tight">${displayName}</span>
-                </div>
-                <div class="flex flex-col">
-                    ${statsHTML}
-                </div>
+            <div class="p-2 overflow-x-auto flex gap-2 no-scrollbar scroll-smooth">
+                ${modesHTML}
             </div>
         `;
         container.appendChild(card);
     });
-            }
+}
