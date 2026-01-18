@@ -155,9 +155,7 @@ async function runMainScan(img) {
         res.stage = extractLastNumber(rawStage, "1");
         res.level = extractLastNumber(rawLevel, "0");
 
-        // [수정됨] 전장 모드 보정 로직
-        // 1. 결과가 '3'인 경우 -> 9로 변경
-        // 2. 인식된 원본 텍스트에 '대'가 포함된 경우 -> 9로 변경
+        // [보정] 1. 전장 모드일 때 스테이지 결과가 3이거나 '대'가 포함되면 9로 변경
         if (typeof currentEntry !== 'undefined' && currentEntry.mode === 'battlefield') {
             if (res.stage === '3' || rawStage.includes('대')) {
                 res.stage = '9';
@@ -171,8 +169,7 @@ async function runMainScan(img) {
         if (totalNums) {
             let cleanTotal = totalNums.join('');
             
-            // [수정됨] 토탈 스코어 자릿수 제한
-            // 숫자가 6자리를 초과하면 뒤에서 6자리만 남김 (예: 1900000 -> 900000)
+            // [보정] 2. 토탈스코어 6자리 초과 시 뒤에서 6자리만 남김
             if (cleanTotal.length > 6) {
                 cleanTotal = cleanTotal.slice(-6);
             }
@@ -186,7 +183,7 @@ async function runMainScan(img) {
             debugText.innerText = `[RAW DATA]\nTime: ${rawTime}\nStage: ${rawStage} -> ${res.stage}\nLevel: ${rawLevel}\nTotal: ${rawTotal} -> ${res.total}`;
         }
 
-        // 전역 변수 lastScannedData에 저장 (script.js 등에서 접근)
+        // 전역 변수 lastScannedData에 저장 (script.js 등에서 서버로 전송될 값)
         lastScannedData = {
             time: res.time, level: res.level, stage: res.stage,
             totalScore: parseInt(res.total.replace(/,/g, ''))
@@ -196,11 +193,18 @@ async function runMainScan(img) {
         document.getElementById('resStage').innerText = res.stage;
         document.getElementById('resTime').innerText = res.time;
         document.getElementById('resLevel').innerText = res.level;
-        document.getElementById('resTotal').innerText = res.total;
+        
+        // [수정] 토탈 스코어는 UI에서 숨김 (값은 lastScannedData에 저장됨)
+        const totalEl = document.getElementById('resTotal');
+        if (totalEl) {
+            // totalEl.innerText = res.total; // 기존 표시 코드 주석 처리
+            totalEl.style.display = 'none';   // 요소 자체를 화면에서 숨김
+        }
 
         const totalNum = lastScannedData.totalScore;
         const isDetected = res.time !== "00:00" && res.level !== "0";
 
+        // 등록 버튼 활성화 여부 (점수 10000점 이상 검증 로직은 유지하여 유효 데이터만 저장)
         if (isDetected && totalNum > 10000) {
             saveBtn.disabled = false;
             statusText.innerText = (currentLang === 'ko') ? "분석 완료" : "COMPLETE";
@@ -223,8 +227,7 @@ async function runMainScan(img) {
 }
 
 /**
- * 3. 이미지 선택 리스너 (수정됨)
- * 직접 크로퍼를 실행하지 않고 script.js의 공용 모달 함수를 호출합니다.
+ * 3. 이미지 선택 리스너
  */
 const imageInput = document.getElementById('imageInput');
 if (imageInput) {
@@ -233,20 +236,14 @@ if (imageInput) {
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (event) => {
-            // script.js의 공용 함수 호출 + 분석 완료 후 'runMainScan'을 실행하도록 예약
             if (typeof openCropModal === 'function') {
                 openCropModal(event.target.result, runMainScan);
             }
         };
         reader.readAsDataURL(file);
-        e.target.value = ""; // 동일 파일 재선택 가능하게 초기화
+        e.target.value = "";
     });
 }
-
-/**
- * 중복 방지를 위해 기존 confirmCrop, closeCropModal 함수는 삭제되었습니다.
- * 이 기능들은 이제 script.js에서 통합 관리됩니다.
- */
 
 function levenshtein(a, b) {
     const m = Array.from({ length: a.length + 1 }, (_, i) => [i]);
