@@ -647,8 +647,8 @@ function renderRankingSlide() {
                             <p class="text-[10px] leading-relaxed text-red-500 font-bold bg-red-50 p-2 rounded border border-red-100">
                                 <i class="fa-solid fa-triangle-exclamation mr-1"></i>
                                 ${lang === 'ko'
-                ? '현재 캐릭터는 직접 선택할 수 있는데 부정적인 데이터로 검토 될 경우 삭제 및 해당 서비스를 영구 사용할 수 없게 됩니다. 공정한 플레이가 진정한 재미를 만든다는 것을 잊지마세요.'
-                : 'Selected characters are subject to review. Falsified data will result in deletion and a permanent service ban. Remember, fair play creates true fun.'}
+                ? '현재 캐릭터를 직접 선택할 수 있는데 부적절한 데이터로 검토 될 경우 해당 데이터는 삭제되며, 데이터 확인이 완료될 때까지 서비스 이용이 제한될 수 있습니다. 공정한 플레이가 진정한 재미를 만든다는 것을 잊지마세요.'
+                : 'Selected characters are subject to review. Service access may be restricted until data verification is complete. Remember, fair play creates true fun.'}
                             </p>
                         </div>
                     </div>
