@@ -615,7 +615,7 @@ function renderRankingSlide() {
     const titleText = translations[lang]['ranking_gp_title'] || (lang === 'ko' ? "최고의 플레이어 (종합 랭킹)" : "Best Players (Grand Prix)");
     const guideBtnText = translations[lang]['ranking_guide'] || (lang === 'ko' ? "산정 기준" : "Guide");
 
-    // 모달 업데이트 (가이드 내용 반영)
+    // 모달 업데이트 (가이드 내용 반영 + 경고 문구 추가)
     if (!document.getElementById('ranking-help-modal')) {
         const modalHtml = `
             <div id="ranking-help-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onclick="toggleRankingHelp()">
@@ -633,9 +633,19 @@ function renderRankingSlide() {
                             <span class="font-bold text-indigo-600">② ${lang === 'ko' ? '캐릭터 보너스' : 'Hero Bonus'}:</span> 
                             ${lang === 'ko' ? `캐릭터별 순위에 따라 보너스 추가.<br>(1-3위: 500점 / 4-10위: 300점 / 11-20위: 100점)` : `Bonus pts for Hero Rank:<br>#1-3: 500pts / #4-10: 300pts / #11-20: 100pts`}
                         </p>
-                        <p class="border-t border-gray-200 pt-2 mt-2">
-                            ${lang === 'ko' ? '※ 합산 점수(GP)가 가장 높은 유저가 종합 1위입니다.' : '※ Highest total GP is Rank 1.'}
+                        <p>
+                            <span class="font-bold text-indigo-600">③ ${lang === 'ko' ? '합산 기준' : 'Total'}:</span> 
+                            ${lang === 'ko' ? '모드별 점수와 보너스를 합산하여 종합 순위를 결정합니다.' : 'Total GP determines the rank.'}
                         </p>
+                        
+                        <div class="mt-3 pt-2 border-t border-gray-200">
+                            <p class="text-[10px] leading-relaxed text-red-500 font-bold bg-red-50 p-2 rounded border border-red-100">
+                                <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                                ${lang === 'ko' 
+                                    ? '현재 캐릭터는 직접 선택할 수 있는데 부정적인 데이터로 검토 될 경우 삭제 및 해당 서비스를 영구 사용할 수 없게 됩니다. 공정한 플레이가 진정한 재미를 만든다는 것을 잊지마세요.' 
+                                    : 'Selected characters are subject to review. Falsified data will result in deletion and a permanent service ban. Remember, fair play creates true fun.'}
+                            </p>
+                        </div>
                     </div>
                     <button onclick="toggleRankingHelp()" class="mt-4 w-full py-2.5 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors">
                         ${lang === 'ko' ? '확인' : 'Close'}
