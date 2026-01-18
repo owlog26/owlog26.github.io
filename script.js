@@ -653,10 +653,7 @@ function renderRankingSlide() {
                         <span class="text-[8px] font-medium text-gray-400 uppercase mt-0.5">${infoLabelText}</span>
                     </div>
                 </div>
-                <div class="flex flex-col items-end gap-0.5">
-                    <span class="text-[8px] font-medium text-gray-400 uppercase tracking-tighter">
-                        ${Number(item.totalScore).toLocaleString()} PTS
-                    </span>
+                <div class="flex flex-col items-end gap-0.5">                 
                     <span class="text-[11px] font-bold text-gray-900 tabular-nums tracking-tight">
                         ${item.time}
                     </span>
@@ -922,15 +919,12 @@ function renderDetailedRankList() {
     renderDetailedPagination();
 }
 
-/**
- * [script.js] 상세 기록 카드 생성 함수
- * 모드(SK vs OWL)에 따른 동적 스타일 및 경로 적용 버전
- */
 function createDetailedRankCard(item, rank, lang) {
     // 1. 모드 판별
-    const isSK = item.mode && item.mode.trim().toUpperCase() === 'SK';
+    const isBattlefield = item.mode === 'battlefield';
+    const isSK = (item.mode && item.mode.toUpperCase() === 'SK');
     
-    // 2. 캐릭터 정보 및 경로 설정
+    // 2. 캐릭터 데이터 찾기 및 경로 설정
     let heroInfo, folder;
     if (isSK) {
         heroInfo = (skHeroDataCache && skHeroDataCache.characters) 
@@ -947,65 +941,112 @@ function createDetailedRankCard(item, rank, lang) {
     const englishName = heroInfo ? heroInfo.english_name : item.character;
     const displayName = heroInfo ? (lang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : item.character;
     const regionCode = (item.region || 'us').toLowerCase();
+    
     const fileName = englishName.replace(/\s+/g, '_');
+    const imgPath = `./${folder}/${fileName}.webp`;
+    const flagUrl = `https://flagcdn.com/w40/${regionCode}.png`;
 
-    // 3. 캐릭터별 커스텀 구도 (기존 OWL + SK 기본값)
-    let objPos = "center 20%";
-    let transform = "scale(1)";
-
-    // SK 캐릭터용 기본 구도 설정
-    if (isSK) {
-        objPos = "center 10%";
-        transform = "scale(1.3)";
+    // 3. 하단 정보 라벨 (Info Label) 설정 [요청사항 적용]
+    let infoLabelText = "";
+    
+    if (isBattlefield) {
+        // 전장 모드: 단계 표시
+        const stgText = lang === 'ko' ? '단계' : 'Stg.';
+        infoLabelText = `${stgText} ${item.stage} <span class="mx-0.5 text-gray-300">•</span> ${displayName}`;
+    } else if (isSK) {
+        // SK 모드: 이름만 표시
+        infoLabelText = displayName;
+    } else {
+        // [클래식 모드 적용] 고통/Lv. 표시
+        const levelText = lang === 'ko' ? '고통' : 'Lv.';
+        infoLabelText = `${levelText} ${item.level} <span class="mx-0.5 text-gray-300">•</span> ${displayName}`;
     }
 
-    // OWL 캐릭터 커스텀 구도
-    if (englishName === "Yoiko") { objPos = "center 10%"; transform = "scale(1.8) translateX(-10px)"; }
-    if (englishName === "Huo Yufeng") { objPos = "center 10%"; transform = "scale(1.5) translateX(5px)"; }
-    if (englishName === "Alessia") { objPos = "center 40%"; }
-    if (englishName === "Vesper") { objPos = "center 30%"; transform = "scale(1.5) translateX(5px)"; }
-    if (englishName === "Jadetalon") { objPos = "center 10%"; transform = "scale(2) translateX(15px) translateY(5px)"; }
-    if (englishName === "Hua Ling") { objPos = "center 10%"; transform = "scale(1.5) translateX(2px) translateY(5px)"; }
-    if (englishName === "Zilan") { objPos = "center 30%"; transform = ""; }
-    if (englishName === "Synthia") { objPos = "center 20%"; transform = "scale(1.5) translateX(-15px)"; }
-    if (englishName === "Anibella") { objPos = "center 10%"; transform = "scale(1.5)"; }
-    if (englishName === "Adelvyn") { objPos = "center 30%"; transform = "scale(1.3) translateX(-10px)"; }
-    if (englishName === "Peddler") { objPos = "center 10%"; transform = "scale(1) translateX(10px)"; }
+    // 4. 이미지 구도 (Object Position & Scale) 설정 [요청사항 적용]
+    let objectPosition = "center 10%";
+    let imageScale = "scale(1.3)";
+    
+    // SK 모드 기본값
+    if (isSK) {
+        objectPosition = "center 10%";
+        imageScale = "scale(1.3)";
+    }
 
-    // 4. 모드별 배지 및 색상 정의
-    const badgeLabel = isSK ? "SK" : `Lv.${item.level}`;
-    const badgeColor = isSK ? "bg-orange-600/90" : "bg-red-500";
-    const rankColor = isSK && rank <= 3 ? "text-orange-500" : (rank <= 3 ? "text-yellow-500" : "text-gray-300");
+    // 캐릭터별 커스텀 보정 (제공해주신 코드 그대로 적용)
+    if (englishName === "Alessia") objectPosition = "center 40%";
+    if (englishName === "Yoiko") { objectPosition = "center 10%"; imageScale = "scale(1.8) translateX(-5px)"; }
+    if (englishName === "Vesper") { objectPosition = "center 30%"; imageScale = "scale(1.7)"; }
+    if (englishName === "Jadetalon") { objectPosition = "center -20%"; imageScale = "scale(2) translateX(10px)"; }
+    if (englishName === "Adelvyn") { objectPosition = "center 30%"; imageScale = "scale(1.3) translateX(-10px)"; }
+    if (englishName === "Peddler") { objectPosition = "center 10%"; imageScale = "scale(1) translateX(10px)"; }
+    // 추가된 캐릭터 보정 (기존 코드 유지)
+    if (englishName === "Huo Yufeng") { objectPosition = "center 10%"; imageScale = "scale(1.5) translateX(5px)"; }
+    if (englishName === "Hua Ling") { objectPosition = "center 10%"; imageScale = "scale(1.5) translateX(2px) translateY(5px)"; }
+    if (englishName === "Zilan") { objectPosition = "center 30%"; imageScale = "scale(1)"; }
+    if (englishName === "Synthia") { objectPosition = "center 20%"; imageScale = "scale(1.5) translateX(-15px)"; }
+    if (englishName === "Anibella") { objectPosition = "center 10%"; imageScale = "scale(1.5)"; }
 
+    // 5. 배지 (Badge) 설정
+    let badgeLabel = "Lv.";
+    let badgeValue = item.level;
+    let badgeColor = "bg-red-600/80"; // 요청하신 색상
+
+    if (isSK) {
+        badgeLabel = "SK";
+        badgeValue = "";
+        badgeColor = "bg-orange-600/90";
+    } else if (isBattlefield) {
+        badgeLabel = "S."; 
+        badgeValue = item.stage;
+        badgeColor = "bg-purple-600/90";
+    }
+
+    // 6. 우측 데이터 표시 우선순위
+    // 기본 스타일(클래식/SK): 점수(작게) / 시간(크게)
+    let smallRightValue = `${Number(item.totalScore).toLocaleString()} PTS`;
+    let bigRightValue = item.time;
+
+    // 전장 모드: 시간(작게) / 점수(크게)
+    if (isBattlefield) {
+        smallRightValue = item.time;
+        bigRightValue = Number(item.totalScore).toLocaleString();
+    }
+
+    // 7. 카드 HTML 생성 (제공해주신 스타일 적용)
     const card = document.createElement('div');
-    card.className = "flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm transition-all duration-300 opacity-0 transform translate-y-2";
+    card.className = "flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm transition-all duration-500 hover:shadow-md";
 
     card.innerHTML = `
         <div class="flex items-center gap-3">
-            <span class="font-black ${rankColor} w-6 text-center italic text-base">${rank}</span>
-            <div class="w-5 h-3.5 overflow-hidden rounded-[2px] shadow-sm border border-gray-100 flex-shrink-0 bg-white">
-                <img src="https://flagcdn.com/w40/${regionCode}.png" class="w-full h-full object-cover">
+            <span class="font-bold ${rank <= 3 ? 'text-gray-700' : 'text-gray-400'} w-4 text-center italic text-xs">${rank}</span>
+            
+            <div class="w-12 h-5 md:w-16 md:h-7 rounded bg-gray-100 border border-gray-100 overflow-hidden flex-shrink-0 relative">
+                <img src="${imgPath}" onerror="this.src='https://via.placeholder.com/48x20?text=Hero'" 
+                     class="w-full h-full object-cover grayscale-[30%]" style="object-position: ${objectPosition}; transform: ${imageScale};">
+                <span class="absolute right-0 bottom-0 ${badgeColor} text-[6px] md:text-[8px] text-white px-1 font-bold">
+                    ${badgeLabel} ${badgeValue}
+                </span>
             </div>
-            <div class="w-14 h-6 md:w-20 md:h-8 rounded-lg bg-gray-200 overflow-hidden relative flex-shrink-0 border border-gray-100">
-                <img src="./${folder}/${fileName}.webp" onerror="this.src='https://via.placeholder.com/80x32?text=Hero'" 
-                     class="w-full h-full object-cover" style="object-position: ${objPos}; transform: ${transform};">
-                <span class="absolute right-0 bottom-0 ${badgeColor} text-[8px] text-white px-1 font-bold">${badgeLabel}</span>
-            </div>
+            
             <div class="flex flex-col">
-                <span class="font-bold text-sm md:text-base text-gray-800 leading-none cursor-pointer" 
-                  onclick="handleDirectJump('${item.userId}')">
-                ${item.userId}
-            </span>
-                <span class="text-[10px] font-bold text-gray-400 uppercase mt-1">${displayName}</span>
+                <div class="flex items-center gap-1.5">
+                    <img src="${flagUrl}" class="w-4 h-3 object-cover rounded-[1px] shadow-sm opacity-80">
+                    <span class="font-bold text-sm text-gray-700 cursor-pointer hover:text-black transition-colors" onclick="handleDirectJump('${item.userId}')">${item.userId}</span>
+                </div>
+                <span class="text-[8px] font-medium text-gray-400 uppercase mt-0.5">${infoLabelText}</span>
             </div>
         </div>
-        <div class="text-right">
-            <span class="text-[10px] font-bold text-gray-400 block mb-0.5">${item.time}</span>
-            <span class="text-base font-black text-gray-900">${Number(item.totalScore).toLocaleString()}</span>
+
+        <div class="flex flex-col items-end gap-0.5">
+            <span class="text-[8px] font-medium text-gray-400 uppercase tracking-tighter">
+                ${smallRightValue}
+            </span>
+            <span class="text-[11px] font-bold text-gray-900 tabular-nums tracking-tight">
+                ${bigRightValue}
+            </span>
         </div>
     `;
 
-    setTimeout(() => card.classList.remove('opacity-0', 'translate-y-2'), 50);
     return card;
 }
 
