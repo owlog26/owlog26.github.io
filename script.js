@@ -8,7 +8,7 @@ let currentModeTab = "Classic"; // 기본값 설정
 let translations = {};
 // ISO 3166-1 alpha-2 전체 리스트 (US, KR 우선 배치 후 알파벳순)
 const isoCodes = [
-    "KR", "US", "CN","VN","JP",// 우선 순위
+    "KR", "US", "CN", "VN", "JP",// 우선 순위
     "AF", "AX", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR", "AM", "AW", "AU", "AT", "AZ",
     "BS", "BH", "BD", "BB", "BY", "BE", "BZ", "BJ", "BM", "BT", "BO", "BA", "BW", "BV", "BR", "IO",
     "BN", "BG", "BF", "BI", "KH", "CM", "CA", "CV", "KY", "CF", "TD", "CL", "CX", "CC", "CO",
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 3. 데이터를 다시 로드하고 렌더링 실행
         // loadRanking() 내부에서 fetch가 완료된 후 renderSKRankingSlide()를 호출해야 합니다.
         if (typeof loadRanking === 'function') {
-            loadRanking(); 
+            loadRanking();
         } else {
             // 로딩 연출을 위해 직접 렌더링 함수 호출
             if (typeof renderSKRankingSlide === 'function') renderSKRankingSlide();
@@ -550,7 +550,7 @@ function getItemsPerPage() {
 function renderRankingSlide() {
     const lang = localStorage.getItem('owlog_lang') || 'ko';
     const container = document.getElementById('content-ranking');
-    
+
     // [추가] OWL 랭킹 로드 시 SK 컨테이너와 로더를 강제로 숨김 처리
     const skContainer = document.getElementById('content-sk-ranking');
     if (skContainer) {
@@ -586,7 +586,7 @@ function renderRankingSlide() {
         // [2] 전장 모드를 위한 바 컬러 설정
         let barColorClass = 'bg-gray-500';
         if (sectionId === 'classic') barColorClass = 'bg-gray-700';
-        if (sectionId === 'battlefield') barColorClass = 'bg-gray-700'; 
+        if (sectionId === 'battlefield') barColorClass = 'bg-gray-700';
 
         header.innerHTML = `
             <h3 class="font-bold text-sm md:text-base flex items-center gap-2 text-gray-800">
@@ -725,7 +725,7 @@ async function loadRanking() {
         if (skHeroRes) {
             skHeroDataCache = await skHeroRes.json();
         }
-        
+
         if (!rawData || rawData.length === 0) return;
 
         // 데이터 정렬: 고통 레벨(내림차순) -> 시간(오름차순)
@@ -928,11 +928,11 @@ function createDetailedRankCard(item, rank, lang) {
     // 1. 모드 판별
     const isBattlefield = item.mode === 'battlefield';
     const isSK = (item.mode && item.mode.toUpperCase() === 'SK');
-    
+
     // 2. 캐릭터 데이터 찾기 및 경로 설정
     let heroInfo, folder;
     if (isSK) {
-        heroInfo = (skHeroDataCache && skHeroDataCache.characters) 
+        heroInfo = (skHeroDataCache && skHeroDataCache.characters)
             ? skHeroDataCache.characters.find(c => c.english_name === item.character || c.korean_name === item.character)
             : null;
         folder = 'sk_heroes';
@@ -946,14 +946,14 @@ function createDetailedRankCard(item, rank, lang) {
     const englishName = heroInfo ? heroInfo.english_name : item.character;
     const displayName = heroInfo ? (lang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : item.character;
     const regionCode = (item.region || 'us').toLowerCase();
-    
+
     const fileName = englishName.replace(/\s+/g, '_');
     const imgPath = `./${folder}/${fileName}.webp`;
     const flagUrl = `https://flagcdn.com/w40/${regionCode}.png`;
 
     // 3. 하단 정보 라벨 (Info Label) 설정 [요청사항 적용]
     let infoLabelText = "";
-    
+
     if (isBattlefield) {
         // 전장 모드: 단계 표시
         const stgText = lang === 'ko' ? '단계' : 'Stg.';
@@ -970,7 +970,7 @@ function createDetailedRankCard(item, rank, lang) {
     // 4. 이미지 구도 (Object Position & Scale) 설정 [요청사항 적용]
     let objectPosition = "center 10%";
     let imageScale = "scale(1.3)";
-    
+
     // SK 모드 기본값
     if (isSK) {
         objectPosition = "center 10%";
@@ -1001,7 +1001,7 @@ function createDetailedRankCard(item, rank, lang) {
         badgeValue = "";
         badgeColor = "bg-orange-600/90";
     } else if (isBattlefield) {
-        badgeLabel = "S."; 
+        badgeLabel = "S.";
         badgeValue = item.stage;
         badgeColor = "bg-purple-600/90";
     }
@@ -1101,7 +1101,7 @@ document.querySelector('[data-i18n-placeholder="placeholder_search"]').addEventL
  */
 function updateSearchProfile(userId) {
     const lang = localStorage.getItem('owlog_lang') || 'en';
-    const firstItem = currentUserRecords[0]; 
+    const firstItem = currentUserRecords[0];
 
     // 1. 캐릭터별 플레이 횟수 계산
     const charCounts = {};
@@ -1117,7 +1117,7 @@ function updateSearchProfile(userId) {
 
     if (isSK) {
         // 소울 나이트 캐릭터인 경우
-        heroInfo = (skHeroDataCache && skHeroDataCache.characters) 
+        heroInfo = (skHeroDataCache && skHeroDataCache.characters)
             ? skHeroDataCache.characters.find(c => c.english_name === mostPlayedChar || c.korean_name === mostPlayedChar)
             : null;
         folder = 'sk_heroes';
@@ -1174,7 +1174,7 @@ function renderSearchSummary() {
     const container = document.getElementById('search-content-summary');
     const lang = localStorage.getItem('owlog_lang') || 'en';
     if (!container) return;
-    
+
     container.innerHTML = '';
 
     // 1. 데이터를 모드별 -> 캐릭터별로 그룹화
@@ -1182,15 +1182,15 @@ function renderSearchSummary() {
 
     currentUserRecords.forEach(item => {
         const mode = item.mode ? item.mode.trim().toUpperCase() : 'CLASSIC';
-        
+
         if (!modeGroups[mode]) {
             modeGroups[mode] = {};
         }
 
         if (!modeGroups[mode][item.character]) {
-            modeGroups[mode][item.character] = { 
-                count: 0, 
-                totalScore: 0, 
+            modeGroups[mode][item.character] = {
+                count: 0,
+                totalScore: 0,
                 maxScore: 0
             };
         }
@@ -1213,7 +1213,7 @@ function renderSearchSummary() {
         // 모드 섹션 헤더 추가
         const sectionHeader = document.createElement('div');
         sectionHeader.className = "flex items-center gap-2 px-2 mt-6 mb-3";
-        
+
         // 모드별 표시 명칭 설정
         let modeDisplayName = modeKey;
         if (modeKey === 'SK') modeDisplayName = 'Soul Knight';
@@ -1344,7 +1344,7 @@ function performUserSearch(query) {
     let heroInfo, folder, transform, objPos;
 
     if (isSKUser) {
-        heroInfo = (skHeroDataCache && skHeroDataCache.characters) 
+        heroInfo = (skHeroDataCache && skHeroDataCache.characters)
             ? skHeroDataCache.characters.find(c => c.english_name === mostPlayedChar || c.korean_name === mostPlayedChar)
             : null;
         folder = 'sk_heroes';
@@ -1360,7 +1360,7 @@ function performUserSearch(query) {
     }
 
     const fileName = heroInfo ? heroInfo.english_name.replace(/\s+/g, '_') : 'Hero';
-    
+
     document.getElementById('search-user-flag').innerHTML = `
         <img src="https://flagcdn.com/w40/${topRecord.region.toLowerCase()}.png" class="w-full h-full object-cover">
     `;
@@ -1431,7 +1431,7 @@ function renderSummaryStats(container, lang) {
     searchUserRecordsRef.forEach(item => {
         const mode = item.mode ? item.mode.trim().toUpperCase() : 'CLASSIC';
         const isSK = mode === 'SK';
-        
+
         // 해당 모드에 맞는 히어로 캐시 선택
         const cache = isSK ? skHeroDataCache : heroDataCache;
         const heroInfo = cache && cache.characters ? cache.characters.find(c =>
@@ -1471,7 +1471,7 @@ function renderSummaryStats(container, lang) {
         // 모드 섹션 헤더 추가
         const sectionHeader = document.createElement('div');
         sectionHeader.className = "flex items-center gap-2 px-2 mt-6 mb-3";
-        
+
         let modeDisplayName = modeKey;
         if (modeKey === 'SK') modeDisplayName = 'Soul Knight';
         else if (modeKey === 'CLASSIC') modeDisplayName = translations[currentLang]['fissureSub'] || 'Spatial Interstice';
@@ -1822,13 +1822,21 @@ async function selectMode(game, mode) {
                 headerTitle.innerText = translations[lang][recordKey];
                 headerTitle.setAttribute('data-i18n', recordKey);
             } else {
-                headerTitle.innerText = (mode === 'fissure') ? "공간의 틈새 기록" :
-                    (mode === 'rift' ? "균열 기록" : "전장 기록 ");
-            }
+                // 번역 데이터가 없을 경우(else)에도 언어 설정(lang)을 확인해야 함
+                if (lang === 'en') {
+                    // 영어일 때
+                    headerTitle.innerText = (mode === 'fissure') ? "Fissure Record" :
+                        (mode === 'rift' ? "Rift Record" : "Battlefield Record");
+                } else {
+                    // 한국어일 때 (기본값)
+                    headerTitle.innerText = (mode === 'fissure') ? "공간의 틈새 기록" :
+                        (mode === 'rift' ? "균열 기록" : "전장 기록");
+                }
 
-            // 헤더 컬러 설정
-            headerTitle.style.color = (mode === 'fissure') ? '#2563eb' :
-                (mode === 'rift' ? '#9333ea' : '#16a34a');
+                // 헤더 컬러 설정
+                headerTitle.style.color = (mode === 'fissure') ? '#2563eb' :
+                    (mode === 'rift' ? '#9333ea' : '#16a34a');
+            }
         }
     }
 
@@ -1996,7 +2004,7 @@ function renderSKRankingSlid1e() {
     // 4. 헤더 생성 (마진 mb-1로 밀착)
     const titleVoid = translations[lang]['void'] || "Void";
     const header = document.createElement('div');
-    header.className = "flex items-center justify-between px-1 mb-1 md:col-span-2"; 
+    header.className = "flex items-center justify-between px-1 mb-1 md:col-span-2";
     header.innerHTML = `
         <h3 class="font-bold text-sm md:text-base flex items-center gap-2 text-gray-800">
             <span class="w-1 h-4 rounded-sm bg-orange-500"></span>
@@ -2011,9 +2019,9 @@ function renderSKRankingSlid1e() {
         const rank = index + 1;
         const regionCode = (item.region || 'us').toLowerCase();
         const flagUrl = `https://flagcdn.com/w40/${regionCode}.png`;
-        
+
         // [캐릭터명 치환] 한글/영어 혼용 데이터를 영어 파일명으로 변환
-        const heroInfo = (skHeroDataCache && skHeroDataCache.characters) 
+        const heroInfo = (skHeroDataCache && skHeroDataCache.characters)
             ? skHeroDataCache.characters.find(c => c.english_name === item.character || c.korean_name === item.character)
             : null;
 
@@ -2092,13 +2100,13 @@ function confirmCrop() {
 
     // 1. 크랍된 영역 가져오기
     const canvas = cropper.getCroppedCanvas();
-    
+
     // 2. 모달 닫기 (추가됨)
     // 여기서 닫아주면 어떤 스캐너를 쓰든 크랍 확인 시 모달이 즉시 닫힙니다.
-    closeCropModal(); 
+    closeCropModal();
 
     // 3. 예약된 분석 함수(runMainScan 또는 confirmSKCrop) 실행
-    currentCropCallback(canvas); 
+    currentCropCallback(canvas);
 }
 
 
@@ -2157,7 +2165,7 @@ function initDragScroll(el) {
         e.preventDefault();
         const x = e.pageX - el.offsetLeft;
         // 이동 거리 계산 (3은 스크롤 속도 배율)
-        const walk = (x - startX) * 2; 
+        const walk = (x - startX) * 2;
         el.scrollLeft = scrollLeft - walk;
     });
 
@@ -2184,7 +2192,7 @@ function renderSKRankingSlide() {
 
     // 1. 데이터가 있는 캐릭터를 상단으로 정렬
     const sortedHeroes = [...heroDataCache.characters].map(hero => {
-        const records = rankingDataCache.filter(r => 
+        const records = rankingDataCache.filter(r =>
             r.character === hero.english_name || r.character === hero.korean_name
         );
         return { ...hero, records };
@@ -2192,7 +2200,7 @@ function renderSKRankingSlide() {
 
     // 2. 헤더 생성
     const header = document.createElement('div');
-    header.className = "flex items-center justify-between px-1 mb-1 md:col-span-2"; 
+    header.className = "flex items-center justify-between px-1 mb-1 md:col-span-2";
     header.innerHTML = `
         <h3 class="font-bold text-sm md:text-base flex items-center gap-2 text-gray-800">
             <span class="w-1 h-4 rounded-sm bg-blue-500"></span>
@@ -2219,10 +2227,10 @@ function renderSKRankingSlide() {
 
         let modesHTML = "";
         modes.forEach(mode => {
-            const modeRecords = hero.records.filter(r => 
+            const modeRecords = hero.records.filter(r =>
                 r.mode && r.mode.trim().toLowerCase() === mode.id.toLowerCase()
             );
-            
+
             if (modeRecords.length > 0) {
                 const best = [...modeRecords].sort((a, b) => {
                     const lvA = parseInt(String(a.level || 0).replace(/[^0-9]/g, '')) || 0;
@@ -2285,7 +2293,7 @@ function renderSKRankingSlide() {
                 ${modesHTML}
             </div>
         `;
-        
+
         container.appendChild(card);
 
         // PC 드래그 스크롤 바인딩
