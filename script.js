@@ -2080,8 +2080,48 @@ function initSKScanner() {
 
 
 /**
- * OWLOG - 캐릭터별 글로벌 리더보드 (가로 스크롤 및 레이아웃 개선 버전)
- * 구조: 캐릭터명 + [모드명 / 국기 닉네임 시간] (가로 스크롤)
+ * 마우스 드래그로 가로 스크롤이 가능하게 만드는 함수
+ */
+function initDragScroll(el) {
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    el.addEventListener('mousedown', (e) => {
+        isDown = true;
+        el.classList.add('active');
+        // 마우스 클릭 시점의 좌표와 현재 스크롤 위치 저장
+        startX = e.pageX - el.offsetLeft;
+        scrollLeft = el.scrollLeft;
+        el.style.cursor = 'grabbing';
+    });
+
+    el.addEventListener('mouseleave', () => {
+        isDown = false;
+        el.style.cursor = 'grab';
+    });
+
+    el.addEventListener('mouseup', () => {
+        isDown = false;
+        el.style.cursor = 'grab';
+    });
+
+    el.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - el.offsetLeft;
+        // 이동 거리 계산 (3은 스크롤 속도 배율)
+        const walk = (x - startX) * 2; 
+        el.scrollLeft = scrollLeft - walk;
+    });
+
+    // 초기 커서 모양 설정
+    el.style.cursor = 'grab';
+}
+
+
+/**
+ * OWLOG - 캐릭터별 글로벌 리더보드 (플레이 횟수 표시 + 드래그 스크롤)
  */
 function renderSKRankingSlide() {
     const lang = localStorage.getItem('owlog_lang') || 'ko';
@@ -2094,6 +2134,7 @@ function renderSKRankingSlide() {
 
     const titleText = translations[lang]['character_leaderboard'] || "Character Leaderboard";
     const subTitleText = translations[lang]['global_best'] || "Global Best";
+    const playsLabel = lang === 'ko' ? '회 플레이' : 'PLAYS'; // 언어별 라벨 설정
 
     // 1. 데이터가 있는 캐릭터를 상단으로 정렬
     const sortedHeroes = [...heroDataCache.characters].map(hero => {
@@ -2121,6 +2162,7 @@ function renderSKRankingSlide() {
         const displayName = lang === 'ko' ? hero.korean_name : hero.english_name;
         const fileName = englishName.replace(/\s+/g, '_');
         const imgPath = `./heroes/${fileName}.webp`;
+        const totalPlays = hero.records.length; // 전체 플레이 횟수 계산
 
         const modes = [
             { id: 'Classic', label: translations[lang]['fissureSub'] || 'Classic' },
@@ -2149,9 +2191,8 @@ function renderSKRankingSlide() {
                 const regionCode = (best.region || 'us').toLowerCase();
                 const flagUrl = `https://flagcdn.com/w40/${regionCode}.png`;
 
-                // 개별 모드 아이템 (가로 스크롤용)
                 modesHTML += `
-                    <div class="flex-shrink-0 w-44 bg-gray-50/50 rounded-xl p-2.5 border border-gray-100">
+                    <div class="flex-shrink-0 w-44 bg-gray-50/50 rounded-xl p-2.5 border border-gray-100 select-none">
                         <div class="text-[9px] font-black text-blue-500 uppercase tracking-tighter mb-1.5 border-b border-blue-100/50 pb-1">
                             ${mode.label}
                         </div>
@@ -2174,7 +2215,7 @@ function renderSKRankingSlide() {
         const card = document.createElement('div');
         card.className = "bg-white rounded-2xl border border-gray-100 shadow-sm transition-all hover:shadow-md overflow-hidden";
 
-        // 캐릭터 이미지 구도 보정
+        // 캐릭터 이미지 구도 보정 로직
         let objPos = "center 10%";
         let transform = "scale(1.3)";
         if (englishName === "Yoiko") { objPos = "center 10%"; transform = "scale(1.8) translateX(-5px)"; }
@@ -2189,12 +2230,20 @@ function renderSKRankingSlide() {
                     <img src="${imgPath}" onerror="this.src='https://via.placeholder.com/40x40?text=Hero'" 
                          class="w-full h-full object-cover" style="object-position: ${objPos}; transform: ${transform};">
                 </div>
-                <span class="font-black text-xs text-gray-900 uppercase tracking-tight">${displayName}</span>
+                <div class="flex flex-col">
+                    <span class="font-black text-xs text-gray-900 uppercase tracking-tight leading-none mb-1">${displayName}</span>
+                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">${totalPlays} ${playsLabel}</span>
+                </div>
             </div>
-            <div class="p-2 overflow-x-auto flex gap-2 no-scrollbar scroll-smooth">
+            <div class="scroll-container p-2 overflow-x-auto flex gap-2 no-scrollbar scroll-smooth">
                 ${modesHTML}
             </div>
         `;
+        
         container.appendChild(card);
+
+        // PC 드래그 스크롤 바인딩
+        const scrollContainer = card.querySelector('.scroll-container');
+        if (scrollContainer) initDragScroll(scrollContainer);
     });
 }
