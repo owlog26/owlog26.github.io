@@ -155,9 +155,7 @@ async function runMainScan(img) {
         res.stage = extractLastNumber(rawStage, "1");
         res.level = extractLastNumber(rawLevel, "0");
 
-        // [추가됨] 1. 전장 모드 보정 로직
-        // - 결과가 '3'인 경우 -> 9로 변경
-        // - 인식된 원본 텍스트에 '대'가 포함된 경우 -> 9로 변경
+        // [보정 1] 전장 모드: '3' 또는 '대' -> '9'
         if (typeof currentEntry !== 'undefined' && currentEntry.mode === 'battlefield') {
             if (res.stage === '3' || rawStage.includes('대')) {
                 res.stage = '9';
@@ -167,17 +165,23 @@ async function runMainScan(img) {
         const tM = rawTime.match(/\d{1,2}[:;.\s]\d{2}/);
         if (tM) res.time = tM[0].replace(/[;.\s]/g, ':').padStart(5, '0');
 
+        // [보정 2 & 3] 토탈 스코어 정제 및 국가별 이슈 해결
+        let numericTotalScore = 0; // 순수 숫자값 저장용 변수
+        
         const totalNums = rawTotal.match(/\d+/g);
         if (totalNums) {
             let cleanTotal = totalNums.join('');
             
-            // [추가됨] 2. 토탈 스코어 자릿수 제한
-            // - 숫자가 6자리를 초과하면 뒤에서 6자리만 남김 (예: 1,900,000 -> 900,000)
+            // 6자리 제한 (예: 1,900,000 -> 900,000)
             if (cleanTotal.length > 6) {
                 cleanTotal = cleanTotal.slice(-6);
             }
             
-            res.total = parseInt(cleanTotal).toLocaleString();
+            // 여기서 순수 정수값 추출 (국가별 포맷 영향 없음)
+            numericTotalScore = parseInt(cleanTotal);
+            
+            // 화면 표시용 (사용자 Locale에 따라 . 또는 , 가 찍힘)
+            res.total = numericTotalScore.toLocaleString();
         } else {
             res.total = "0";
         }
@@ -186,10 +190,13 @@ async function runMainScan(img) {
             debugText.innerText = `[RAW DATA]\nTime: ${rawTime}\nStage: ${rawStage} -> ${res.stage}\nLevel: ${rawLevel}\nTotal: ${rawTotal} -> ${res.total}`;
         }
 
-        // 전역 변수 lastScannedData에 저장 (script.js 등에서 접근)
+        // [중요] lastScannedData에 'numericTotalScore'를 직접 할당
+        // 화면에 표시된 res.total(예: "123.456")을 다시 파싱하지 않으므로 오류 원천 차단
         lastScannedData = {
-            time: res.time, level: res.level, stage: res.stage,
-            totalScore: parseInt(res.total.replace(/,/g, ''))
+            time: res.time, 
+            level: res.level, 
+            stage: res.stage,
+            totalScore: numericTotalScore 
         };
 
         // UI 업데이트 (OWL 전용 ID)
@@ -247,6 +254,7 @@ if (imageInput) {
  * 중복 방지를 위해 기존 confirmCrop, closeCropModal 함수는 삭제되었습니다.
  * 이 기능들은 이제 script.js에서 통합 관리됩니다.
  */
+
 function levenshtein(a, b) {
     const m = Array.from({ length: a.length + 1 }, (_, i) => [i]);
     for (let j = 0; j <= b.length; m[0][j] = j++);
