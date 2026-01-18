@@ -2078,22 +2078,25 @@ function initSKScanner() {
     loadSKHeroData();
 }
 
-
 /**
- * OWLOG - 캐릭터별 글로벌 랭킹 리스트 (개선 버전)
- * 겹침 현상 해결, 국기 추가, 데이터 있는 캐릭터 상단 정렬 적용
+ * OWLOG - 캐릭터별 글로벌 랭킹 리스트 (레이아웃 개선 버전)
+ * 요청 사항: 모드 | 국기 닉네임 (상단), 시간 (하단) 배치 + 데이터 우선 정렬
  */
 function renderSKRankingSlide() {
     const lang = localStorage.getItem('owlog_lang') || 'ko';
     const container = document.getElementById('content-sk-ranking');
 
+    // 1. 필수 데이터 및 번역 객체 확인
     if (!container || !rankingDataCache.length || !heroDataCache || !translations[lang]) return;
 
     container.innerHTML = '';
-    // 모바일에서 카드가 잘리지 않도록 column 간격 조정
     container.className = "mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2";
 
-    // 1. 데이터 분석 및 영웅 리스트 정렬 (기록 있는 캐릭터 우선)
+    // [번역 적용] idle.json에서 가져오기
+    const titleText = translations[lang]['character_leaderboard'] || "Global Best by Hero";
+    const subTitleText = translations[lang]['global_best'] || "Global Best";
+
+    // 2. 데이터가 있는 캐릭터를 상단으로 정렬
     const sortedHeroes = [...heroDataCache.characters].map(hero => {
         const records = rankingDataCache.filter(r => 
             r.character === hero.english_name || r.character === hero.korean_name
@@ -2101,26 +2104,25 @@ function renderSKRankingSlide() {
         return { ...hero, records };
     }).sort((a, b) => b.records.length - a.records.length);
 
-    // 2. 헤더 생성
+    // 3. 헤더 생성
     const header = document.createElement('div');
     header.className = "flex items-center justify-between px-1 mb-1 md:col-span-2"; 
     header.innerHTML = `
         <h3 class="font-bold text-sm md:text-base flex items-center gap-2 text-gray-800">
             <span class="w-1 h-4 rounded-sm bg-blue-500"></span>
-            <span data-i18n="character_leaderboard">Global Best by Hero</span>
+            <span data-i18n="character_leaderboard">${titleText}</span>
         </h3>
-        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Global Best</span>
+        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest" data-i18n="global_best">${subTitleText}</span>
     `;
     container.appendChild(header);
 
-    // 3. 정렬된 영웅 리스트 렌더링
+    // 4. 캐릭터 리스트 렌더링
     sortedHeroes.forEach((hero) => {
         const englishName = hero.english_name;
         const displayName = lang === 'ko' ? hero.korean_name : hero.english_name;
         const fileName = englishName.replace(/\s+/g, '_');
         const imgPath = `./heroes/${fileName}.webp`;
 
-        // 모드별 최고 기록 추출
         const modes = [
             { id: 'Classic', label: translations[lang]['fissureSub'] || 'Classic' },
             { id: 'Rift', label: translations[lang]['riftSub'] || 'Rift' },
@@ -2143,21 +2145,23 @@ function renderSKRankingSlide() {
                     const stgA = parseInt(a.stage) || 0;
                     const stgB = parseInt(b.stage) || 0;
                     if (stgB !== stgA) return stgB - stgA;
-                    return String(a.time).localeCompare(String(b.time));
+                    return String(a.time).localeCompare(String(best.time));
                 })[0];
 
                 const regionCode = (best.region || 'us').toLowerCase();
                 const flagUrl = `https://flagcdn.com/w40/${regionCode}.png`;
 
-                // 텍스트 겹침 방지를 위해 flex 구조로 설계
+                // [레이아웃 수정] 모드 | 국기 닉네임 (위), 시간 (아래)
                 statsHTML += `
-                    <div class="flex items-center justify-between text-[10px] gap-2 py-0.5">
-                        <span class="text-gray-400 font-black uppercase w-14 flex-shrink-0">${mode.label}</span>
-                        <div class="flex items-center gap-1.5 min-w-0 flex-1">
-                            <img src="${flagUrl}" class="w-3.5 h-2.5 object-cover rounded-[1px] shadow-sm flex-shrink-0">
-                            <span class="text-gray-700 font-bold truncate">${best.userId}</span>
+                    <div class="flex items-start gap-3 py-2 border-t border-gray-50 first:border-0">
+                        <span class="text-[10px] font-black text-gray-400 uppercase w-12 flex-shrink-0 pt-0.5 border-r border-gray-100 pr-1">${mode.label}</span>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-1.5 mb-0.5">
+                                <img src="${flagUrl}" class="w-3.5 h-2.5 object-cover rounded-[1px] shadow-sm">
+                                <span class="text-[11px] font-bold text-gray-800 truncate">${best.userId}</span>
+                            </div>
+                            <div class="text-[10px] text-gray-400 font-medium tabular-nums pl-5">${best.time}</div>
                         </div>
-                        <span class="text-gray-400 tabular-nums font-medium flex-shrink-0">${best.time}</span>
                     </div>
                 `;
             }
@@ -2167,10 +2171,10 @@ function renderSKRankingSlide() {
             statsHTML = `<p class="text-[10px] text-gray-300 italic py-1">No records yet</p>`;
         }
 
-        // 카드 생성 및 구도 보정
         const card = document.createElement('div');
-        card.className = "flex items-start gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm transition-all hover:shadow-md h-auto";
+        card.className = "flex items-start gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm transition-all hover:shadow-md";
 
+        // 캐릭터별 구도 보정
         let objPos = "center 10%";
         let transform = "scale(1.3)";
         if (englishName === "Yoiko") { objPos = "center 10%"; transform = "scale(1.8) translateX(-5px)"; }
@@ -2185,7 +2189,7 @@ function renderSKRankingSlide() {
                      class="w-full h-full object-cover" style="object-position: ${objPos}; transform: ${transform};">
             </div>
             <div class="flex-1 min-w-0">
-                <div class="mb-1.5">
+                <div class="mb-2">
                     <span class="font-black text-sm text-gray-900 uppercase tracking-tight">${displayName}</span>
                 </div>
                 <div class="flex flex-col">
