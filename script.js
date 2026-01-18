@@ -654,6 +654,9 @@ function renderRankingSlide() {
                     </div>
                 </div>
                 <div class="flex flex-col items-end gap-0.5">                 
+                      <span class="text-[8px] font-medium text-gray-400 uppercase tracking-tighter">
+                        ${Number(item.totalScore).toLocaleString()} PTS
+                    </span>
                     <span class="text-[11px] font-bold text-gray-900 tabular-nums tracking-tight">
                         ${item.time}
                     </span>
