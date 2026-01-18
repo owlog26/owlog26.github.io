@@ -628,6 +628,7 @@ function renderRankingSlide() {
                         <i class="fa-solid fa-trophy text-indigo-600"></i>
                         ${lang === 'ko' ? '랭킹 포인트(GP) 산정 기준' : 'Ranking Points (GP) Guide'}
                     </h3>
+                    
                     <div class="space-y-3 text-xs text-gray-600 bg-gray-50 p-3 rounded-lg leading-relaxed">
                         <p>
                             <span class="font-bold text-indigo-600">① ${lang === 'ko' ? '모드별 점수' : 'Mode Points'}:</span> 
