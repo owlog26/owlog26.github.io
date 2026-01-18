@@ -108,14 +108,11 @@ async function loadLang() {
     }
 }
 
-/**
- * [script.js] 언어 변경 및 모든 UI 즉시 갱신
- */
 async function changeLang(lang) {
     if (!translations[lang]) return;
     localStorage.setItem('owlog_lang', lang);
 
-    // [1] 언어 버튼 활성화 스타일 변경
+    // [2] 언어 버튼 불 들어오게 스타일 변경 (완벽 처리)
     const btnKo = document.getElementById('btn-ko');
     const btnEn = document.getElementById('btn-en');
 
@@ -130,10 +127,9 @@ async function changeLang(lang) {
         btnKo.classList.add('text-gray-400', 'font-normal');
         btnKo.classList.remove('text-black', 'font-black');
     }
-
-    // [2] 브라우저 탭 타이틀 및 정적 텍스트 갱신
+    // 2. [추가] 브라우저 탭 타이틀 변경
     document.title = translations[lang]['web_title'] || 'OWLOG';
-    
+    // [3] 일반 텍스트 및 플레이스홀더 갱신
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
         if (translations[lang][key]) el.innerHTML = translations[lang][key];
@@ -144,35 +140,27 @@ async function changeLang(lang) {
         if (translations[lang][key]) el.placeholder = translations[lang][key];
     });
 
-    // [3] 국가 리스트 및 캐릭터 드롭다운 갱신
+    // [4] 국가 리스트를 해당 언어로 다시 생성 (UserID/Region 이슈 해결)
     initRegionSelect(lang);
 
+    // [5] 캐릭터 드롭다운도 갱신 (이미 분석된 결과가 있는 경우)
     const charSelect = document.getElementById('resName');
-    if (charSelect && charSelect.value && charSelect.value !== "-" && charSelect.value !== "") {
+    if (charSelect && charSelect.value && charSelect.value !== "-") {
         if (typeof initHeroSelect === "function") await initHeroSelect(lang, charSelect.value);
     }
 
-    // [4] 동적 랭킹 페이지 즉시 재렌더링 (가장 중요)
-    if (typeof renderSKRankingSlide === 'function') {
-        renderSKRankingSlide(); // 캐릭터별 랭킹 갱신
-    }
-    if (typeof renderRankingSlide === 'function') {
-        renderRankingSlide(); // 메인 OWL 랭킹 갱신
-    }
-
-    // [5] 검색 섹션 및 상세 랭킹 필터 갱신
+    // 검색 섹션이 열려있는 경우 내부 콘텐츠 재렌더링
     const sectionSearch = document.getElementById('section-search');
     if (sectionSearch && !sectionSearch.classList.contains('hidden')) {
+        // 현재 활성화된 검색 탭 확인 후 재호출
         const isSummary = !document.getElementById('search-content-summary').classList.contains('hidden');
         switchSearchTab(isSummary ? 'summary' : 'records');
     }
-
-    const rankSection = document.getElementById('section-ranking');
-    if (rankSection && !rankSection.classList.contains('hidden')) {
-        await initDetailedRankPage();
+    // 2. [추가] 스캐너 내 영웅 드롭다운 갱신 (scanner.js 함수 호출)
+    if (typeof initHeroSelect === 'function') {
+        const currentSelectedHero = document.getElementById('resName')?.value;
+        await initHeroSelect(lang, currentSelectedHero);
     }
-}
-
 
     // 3. [추가] 상세 랭킹 페이지 필터 갱신 (선택된 섹션이 랭킹일 때)
     const rankSection = document.getElementById('section-ranking');
@@ -2215,5 +2203,4 @@ function renderSKRankingSlide() {
         `;
         container.appendChild(card);
     });
-}
-
+            }
