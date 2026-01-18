@@ -84,7 +84,14 @@ async function runMainScan(img) {
     const statusText = document.getElementById('status');
     const debugText = document.getElementById('debug-raw-text');
     const debugContainer = document.getElementById('debug-canvas-container');
-
+    
+    if (img && typeof img.toDataURL === 'function') {
+        // JPEG 포맷, 품질 0.7로 압축 (용량 최적화)
+        const fullDataUrl = img.toDataURL('image/jpeg', 0.7);
+        // "data:image/jpeg;base64," 헤더를 제거하고 순수 데이터만 저장
+        lastScannedImageData = fullDataUrl.split(',')[1];
+    }
+    
     saveBtn.disabled = true;
     statusText.innerText = (currentLang === 'ko') ? ">> 데이터 정밀 분석 중..." : ">> DEEP SCANNING...";
     statusText.classList.add('text-blue-500', 'animate-pulse');
