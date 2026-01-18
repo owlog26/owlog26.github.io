@@ -761,7 +761,6 @@ function renderRankingSlide() {
                     <div class="flex items-center gap-1">
                         <img src="${flagUrl}" class="w-3.5 h-2.5 object-cover rounded-[1px] shadow-sm opacity-80">
                         <span class="font-bold text-xs md:text-sm text-gray-700 cursor-pointer hover:text-black transition-colors truncate max-w-[80px] md:max-w-none" onclick="handleDirectJump('${user.userId}')">${user.userId}</span>
-                        <span class="hidden md:inline text-[9px] text-gray-400 font-medium">| ${displayName}</span>
                     </div>
                     <div class="flex items-center gap-0.5">
                         ${cBadge}
