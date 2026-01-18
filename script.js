@@ -1876,7 +1876,7 @@ async function saveRecord(event) {
     }
 
     // B. 공간의 전장 200,000점 제한 [신규 추가]
-    if (mode === 'battlefield' && totalScore < 200000) {
+    if (mode === 'battlefield' && totalScore < 100000) {
         const msg = lang === 'ko'
             ? "전장 기록은 200,000점 이상 기록만 저장할 수 있습니다."
             : "Battlefield records require 200,000 points or higher.";

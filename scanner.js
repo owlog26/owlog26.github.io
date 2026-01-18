@@ -155,9 +155,9 @@ async function runMainScan(img) {
         res.stage = extractLastNumber(rawStage, "1");
         res.level = extractLastNumber(rawLevel, "0");
 
-        // [수정됨] 전장 모드 보정 로직
-        // 1. 결과가 '3'인 경우 -> 9로 변경
-        // 2. 인식된 원본 텍스트에 '대'가 포함된 경우 -> 9로 변경
+        // [추가됨] 1. 전장 모드 보정 로직
+        // - 결과가 '3'인 경우 -> 9로 변경
+        // - 인식된 원본 텍스트에 '대'가 포함된 경우 -> 9로 변경
         if (typeof currentEntry !== 'undefined' && currentEntry.mode === 'battlefield') {
             if (res.stage === '3' || rawStage.includes('대')) {
                 res.stage = '9';
@@ -171,8 +171,8 @@ async function runMainScan(img) {
         if (totalNums) {
             let cleanTotal = totalNums.join('');
             
-            // [수정됨] 토탈 스코어 자릿수 제한
-            // 숫자가 6자리를 초과하면 뒤에서 6자리만 남김 (예: 1900000 -> 900000)
+            // [추가됨] 2. 토탈 스코어 자릿수 제한
+            // - 숫자가 6자리를 초과하면 뒤에서 6자리만 남김 (예: 1,900,000 -> 900,000)
             if (cleanTotal.length > 6) {
                 cleanTotal = cleanTotal.slice(-6);
             }
