@@ -410,9 +410,9 @@ function getItemsPerPage() {
     return window.innerWidth >= 768 ? 10 : 5;
 }
 // [설정] 항목당 만점 점수
-const BASE_SCORE_PER_ITEM = 10000; 
+const BASE_SCORE_PER_ITEM = 10000;
 // [설정] 순위당 차감 점수 (1위와 2위의 점수 차이) -> 100점으로 상향 조정
-const SCORE_DEDUCTION_PER_RANK = 200; 
+const SCORE_DEDUCTION_PER_RANK = 200;
 
 // [설정] 캐릭터 랭킹 순위별 보너스 점수
 function getHeroRankBonus(rank) {
@@ -423,7 +423,7 @@ function getHeroRankBonus(rank) {
 }
 
 // [설정] 랭킹 도움말 모달
-window.toggleRankingHelp = function() {
+window.toggleRankingHelp = function () {
     const modal = document.getElementById('ranking-help-modal');
     if (modal) {
         modal.classList.toggle('hidden');
@@ -433,10 +433,10 @@ window.toggleRankingHelp = function() {
 // [보조 함수] 시간 정렬용
 function parseTimeForSort(timeStr) {
     if (!timeStr) return 999999;
-    const cleanStr = timeStr.replace(/[^0-9:]/g, ''); 
+    const cleanStr = timeStr.replace(/[^0-9:]/g, '');
     const parts = cleanStr.split(':');
     if (parts.length === 2) {
-        return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10); 
+        return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
     } else if (parts.length === 3) {
         return parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
     }
@@ -461,7 +461,7 @@ function renderRankingSlide() {
     });
 
     // [캐릭터 보너스]
-    const userHeroBonusMap = {}; 
+    const userHeroBonusMap = {};
     masterHeroes.forEach(hero => {
         const enName = hero.english_name;
         const koName = hero.korean_name;
@@ -486,23 +486,27 @@ function renderRankingSlide() {
     // 1. 모드별 랭킹 산정
     const modes = ['Classic', 'Rift', 'Battlefield'];
     const modeRankings = {};
-    
+
     modes.forEach(mode => {
         let rawList = rankingDataCache.filter(item => item.mode === mode);
-        
+
+        // (2) 정렬 로직 (최고 기록을 맨 위로 올리기 위함)
         const sortFunc = (a, b) => {
             if (mode === 'Battlefield') {
-                const scoreA = parseInt(a.totalScore) || 0;
-                const scoreB = parseInt(b.totalScore) || 0;
-                if (scoreB !== scoreA) return scoreB - scoreA;
-                return parseTimeForSort(a.time) - parseTimeForSort(b.time);
-            } else if (mode === 'Classic') {
                 const levelDiff = (parseInt(b.level) || 0) - (parseInt(a.level) || 0);
                 if (levelDiff !== 0) return levelDiff;
                 return parseTimeForSort(a.time) - parseTimeForSort(b.time);
-            } else {
+            } else if (mode === 'Classic') {
+                // [클래식] 레벨 > 시간 (스테이지 무시)
+                const levelDiff = (parseInt(b.level) || 0) - (parseInt(a.level) || 0);
+                if (levelDiff !== 0) return levelDiff;
+
+                // [균열] 스테이지 > 레벨 > 시간
                 const stageDiff = (parseInt(b.stage) || 0) - (parseInt(a.stage) || 0);
                 if (stageDiff !== 0) return stageDiff;
+
+                return parseTimeForSort(a.time) - parseTimeForSort(b.time);
+            } else {
                 const levelDiff = (parseInt(b.level) || 0) - (parseInt(a.level) || 0);
                 if (levelDiff !== 0) return levelDiff;
                 return parseTimeForSort(a.time) - parseTimeForSort(b.time);
@@ -533,7 +537,7 @@ function renderRankingSlide() {
                 uniqueList[i].realRank = i + 1;
             }
         }
-        
+
         modeRankings[mode] = uniqueList;
     });
 
@@ -547,19 +551,19 @@ function renderRankingSlide() {
                 region: item.region,
                 bestRecord: item,
                 playedCharacters: new Set(),
-                mainCharacter: null, 
+                mainCharacter: null,
                 maxCharCount: 0,
                 charCounts: {},
                 totalPoints: 0,
                 detailRanks: { Classic: '-', Rift: '-', Battlefield: '-' }
             };
         }
-        
+
         const u = userStats[item.userId];
 
         // 이름 정규화 (한글->영어)
         let normalizedCharName = item.character;
-        const matchedHero = masterHeroes.find(h => 
+        const matchedHero = masterHeroes.find(h =>
             h.english_name === item.character || h.korean_name === item.character
         );
         if (matchedHero) {
@@ -568,11 +572,11 @@ function renderRankingSlide() {
 
         u.playedCharacters.add(normalizedCharName);
         u.charCounts[normalizedCharName] = (u.charCounts[normalizedCharName] || 0) + 1;
-        
+
         if (u.charCounts[normalizedCharName] > u.maxCharCount) {
             u.maxCharCount = u.charCounts[normalizedCharName];
             u.mainCharacter = normalizedCharName;
-            if (!u.bestRecord) u.bestRecord = item; 
+            if (!u.bestRecord) u.bestRecord = item;
         }
         if (!u.mainCharacter) u.mainCharacter = normalizedCharName;
         if (!u.bestRecord) u.bestRecord = item;
@@ -584,11 +588,11 @@ function renderRankingSlide() {
         modes.forEach(mode => {
             const list = modeRankings[mode];
             const myRecord = list.find(r => r.userId === user.userId);
-            
+
             if (myRecord) {
                 const rank = myRecord.realRank;
                 user.detailRanks[mode] = rank;
-                
+
                 // [변경] 순위당 100점 차감 (변별력 강화)
                 // 1위: 10000, 2위: 9900, 3위: 9800 ...
                 const points = Math.max(0, BASE_SCORE_PER_ITEM - ((rank - 1) * SCORE_DEDUCTION_PER_RANK));
@@ -641,9 +645,9 @@ function renderRankingSlide() {
                         <div class="mt-3 pt-2 border-t border-gray-200">
                             <p class="text-[10px] leading-relaxed text-red-500 font-bold bg-red-50 p-2 rounded border border-red-100">
                                 <i class="fa-solid fa-triangle-exclamation mr-1"></i>
-                                ${lang === 'ko' 
-                                    ? '현재 캐릭터는 직접 선택할 수 있는데 부정적인 데이터로 검토 될 경우 삭제 및 해당 서비스를 영구 사용할 수 없게 됩니다. 공정한 플레이가 진정한 재미를 만든다는 것을 잊지마세요.' 
-                                    : 'Selected characters are subject to review. Falsified data will result in deletion and a permanent service ban. Remember, fair play creates true fun.'}
+                                ${lang === 'ko'
+                ? '현재 캐릭터는 직접 선택할 수 있는데 부정적인 데이터로 검토 될 경우 삭제 및 해당 서비스를 영구 사용할 수 없게 됩니다. 공정한 플레이가 진정한 재미를 만든다는 것을 잊지마세요.'
+                : 'Selected characters are subject to review. Falsified data will result in deletion and a permanent service ban. Remember, fair play creates true fun.'}
                             </p>
                         </div>
                     </div>
@@ -663,7 +667,7 @@ function renderRankingSlide() {
 
     const header = document.createElement('div');
     header.className = "flex items-center justify-between px-1 mb-2";
-    
+
     header.innerHTML = `
         <h3 class="font-bold text-sm md:text-base flex items-center gap-2 text-gray-800">
             <span class="w-1 h-4 rounded-sm bg-indigo-600"></span>
@@ -683,7 +687,7 @@ function renderRankingSlide() {
 
     topUsers.forEach((user, index) => {
         const rank = index + 1;
-        
+
         const charName = user.mainCharacter;
         const heroInfo = heroDataCache.characters.find(c => c.english_name === charName || c.korean_name === charName);
         const englishName = heroInfo ? heroInfo.english_name : charName;
@@ -712,8 +716,8 @@ function renderRankingSlide() {
         const createBadge = (label, value, type) => {
             let colors = '';
             let content = '';
-            
-            if (type === 'H') { 
+
+            if (type === 'H') {
                 colors = 'text-emerald-600 bg-emerald-600 border-emerald-600';
                 content = `${value}`;
             } else if (value === '-') {
@@ -741,7 +745,7 @@ function renderRankingSlide() {
 
         const card = document.createElement('div');
         card.className = "flex items-center justify-between p-2.5 bg-white rounded-xl border border-gray-100 shadow-sm transition-all duration-500 hover:shadow-md";
-        
+
         card.innerHTML = `
             <div class="flex items-center gap-2.5">
                 <span class="font-bold ${rank <= 3 ? 'text-indigo-600' : 'text-gray-400'} w-3.5 text-center italic text-xs">${rank}</span>
