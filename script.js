@@ -412,7 +412,7 @@ function getItemsPerPage() {
 // [설정] 항목당 만점 점수
 const BASE_SCORE_PER_ITEM = 10000;
 // [설정] 순위당 차감 점수 (1위와 2위의 점수 차이) -> 100점으로 상향 조정
-const SCORE_DEDUCTION_PER_RANK = 200;
+const SCORE_DEDUCTION_PER_RANK = 150;
 
 // [설정] 캐릭터 랭킹 순위별 보너스 점수
 function getHeroRankBonus(rank) {
@@ -512,7 +512,7 @@ function renderRankingSlide() {
                 return parseTimeForSort(a.time) - parseTimeForSort(b.time);
             }
         };
-        
+
         rawList.sort(sortFunc);
 
         const uniqueUserMap = new Map();
