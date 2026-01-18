@@ -606,7 +606,7 @@ function renderRankingSlide() {
 
     // 4. 정렬
     const sortedUsers = Object.values(userStats).sort((a, b) => b.totalPoints - a.totalPoints);
-    const topUsers = sortedUsers.slice(0, 10);
+    const topUsers = sortedUsers.slice(0, 20);
 
     // 5. 렌더링
     container.innerHTML = '';
