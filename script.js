@@ -271,140 +271,6 @@ function validateNickname(name) {
     return { ok: true };
 }
 
-/**
- * [실제 저장 실행 함수]
- */
-function renderRankingSlide() {
-    const lang = localStorage.getItem('owlog_lang') || 'ko';
-    const container = document.getElementById('content-ranking');
-
-    // 필수 데이터 로드 여부 확인
-    if (!container || !rankingDataCache.length || !heroDataCache || !translations[lang]) return;
-
-    if (rankingTimeout) {
-        clearTimeout(rankingTimeout);
-        rankingTimeout = null;
-    }
-
-    // [1] 전체 데이터에서 유저별 최고 기록 추출
-    const bestData = getBestRecordsPerUser(rankingDataCache);
-
-    // [2] 필터링 강화: 공백 제거 및 대소문자 무시
-    // 시트에서 "Classic " 처럼 공백이 들어가거나 "classic"으로 올 경우를 대비합니다.
-    const classicTop5 = bestData.filter(item =>
-        item.mode && item.mode.trim().toLowerCase() === 'classic'
-    ).slice(0, 5);
-
-    const riftTop5 = bestData.filter(item =>
-        item.mode && item.mode.trim().toLowerCase() === 'rift'
-    ).slice(0, 5);
-
-    container.innerHTML = '';
-    container.className = "mt-4 space-y-8 md:col-span-2";
-
-    const renderSection = (title, data, modeLabel, sectionId) => {
-        // 데이터가 없으면 섹션 자체를 그리지 않음
-        if (data.length === 0) return;
-
-        const section = document.createElement('div');
-        section.className = "space-y-3";
-
-        const header = document.createElement('div');
-        header.className = "flex items-center justify-between px-1 mb-2";
-        const barColorClass = sectionId === 'classic' ? 'bg-gray-700' : 'bg-gray-500';
-
-        header.innerHTML = `
-            <h3 class="font-bold text-sm md:text-base flex items-center gap-2 text-gray-800">
-                <span class="w-1 h-4 rounded-sm ${barColorClass}"></span>
-                ${title}
-            </h3>
-            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Top 6</span>
-        `;
-        section.appendChild(header);
-
-        const listGrid = document.createElement('div');
-        listGrid.className = "grid grid-cols-1 md:grid-cols-2 gap-3";
-
-        data.forEach((item, index) => {
-            const rank = index + 1;
-            const heroInfo = heroDataCache.characters.find(c =>
-                c.english_name === item.character || c.korean_name === item.character
-            );
-
-            const regionCode = (item.region || 'us').toLowerCase();
-            const flagUrl = `https://flagcdn.com/w40/${regionCode}.png`;
-            const englishName = heroInfo ? heroInfo.english_name : item.character;
-            const fileName = englishName.replace(/\s+/g, '_');
-            const imgPath = `./heroes/${fileName}.webp`;
-            const displayName = heroInfo ? (lang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : item.character;
-
-            // 배지 및 라벨 설정
-            const badgeLabel = sectionId === 'classic' ? (lang === 'ko' ? '단계' : 'STG') : (lang === 'ko' ? '고통' : 'Lv.');
-            const badgeValue = sectionId === 'classic' ? (item.stage || "1") : (item.level || "0");
-
-            let infoLabelText = "";
-            if (sectionId === 'classic') {
-                const levelText = lang === 'ko' ? '고통' : 'Lv.';
-                infoLabelText = `${levelText} ${item.level} <span class="mx-0.5 text-gray-300">•</span> ${displayName}`;
-            } else {
-                infoLabelText = displayName;
-            }
-
-            let objectPosition = "center 10%";
-            let imageScale = "scale(1.3)";
-            if (englishName === "Alessia") objectPosition = "center 40%";
-            if (englishName === "Yoiko") { objectPosition = "center 10%"; imageScale = "scale(1.8) translateX(-5px)"; }
-            if (englishName === "Aorvion") { objectPosition = "center 10%"; imageScale = "scale(2) translateX(10px)"; }
-            if (englishName === "Vesper") { objectPosition = "center 30%"; imageScale = "scale(1.7)"; }
-            if (englishName === "Jadetalon") { objectPosition = "center -20%"; imageScale = "scale(2) translateX(10px)"; }
-            if (englishName === "Adelvyn") { objectPosition = "center 30%"; imageScale = "scale(1.3) translateX(-10px)"; }
-            if (englishName === "Peddler") { objectPosition = "center 10%"; imageScale = "scale(1)  translateX(10px)"; }
-
-            const card = document.createElement('div');
-            card.className = "flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm transition-all duration-500 hover:shadow-md";
-            card.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <span class="font-bold ${rank <= 3 ? 'text-gray-700' : 'text-gray-400'} w-4 text-center italic text-xs">${rank}</span>
-                    <div class="w-12 h-5 md:w-16 md:h-7 rounded bg-gray-100 border border-gray-100 overflow-hidden flex-shrink-0 relative">
-                        <img src="${imgPath}" onerror="this.src='https://via.placeholder.com/48x20?text=Hero'" 
-                             class="w-full h-full object-cover grayscale-[30%]" style="object-position: ${objectPosition}; transform: ${imageScale};">
-                        <span class="absolute right-0 bottom-0 bg-red-600/80 text-[6px] md:text-[8px] text-white px-1 font-bold">
-                            ${badgeLabel} ${badgeValue}
-                        </span>
-                    </div>
-                    <div class="flex flex-col">
-                        <div class="flex items-center gap-1.5">
-                            <img src="${flagUrl}" class="w-4 h-3 object-cover rounded-[1px] shadow-sm opacity-80">
-                            <span class="font-bold text-sm text-gray-700 cursor-pointer hover:text-black transition-colors" onclick="handleDirectJump('${item.userId}')">${item.userId}</span>
-                        </div>
-                        <span class="text-[8px] font-medium text-gray-400 uppercase mt-0.5">${infoLabelText}</span>
-                    </div>
-                </div>
-                <div class="flex flex-col items-end gap-0.5">
-                    <span class="text-[8px] font-medium text-gray-400 uppercase tracking-tighter">
-                        ${Number(item.totalScore).toLocaleString()} PTS
-                    </span>
-                    <span class="text-[11px] font-bold text-gray-900 tabular-nums tracking-tight">
-                        ${item.time}
-                    </span>
-                </div>
-            `;
-            listGrid.appendChild(card);
-        });
-
-        section.appendChild(listGrid);
-        container.appendChild(section);
-    };
-
-    const titleClassic = translations[lang]['fissure'] || "Spatial Interstice";
-    const labelClassic = translations[lang]['fissureSub'] || "Classic";
-    const titleRift = translations[lang]['rift'] || "The Rift";
-    const labelRift = translations[lang]['riftSub'] || "Rift";
-
-    renderSection(titleClassic, classicTop5, labelClassic, 'classic');
-    renderSection(titleRift, riftTop5, labelRift, 'rift');
-}
-
 // [수정] 리스너를 하나로 통합하여 순서 제어
 document.addEventListener('DOMContentLoaded', async () => {
     await loadLang();       // 언어 설정 먼저 완료
@@ -543,11 +409,390 @@ function getItemsPerPage() {
     // md 브레이크포인트(768px) 이상이면 10개, 아니면 5개
     return window.innerWidth >= 768 ? 10 : 5;
 }
+// [설정] 항목당 만점 점수 (1위 10,000점)
+const BASE_SCORE_PER_ITEM = 10000;
+
+// [설정] 캐릭터 랭킹 순위별 보너스 점수 (Tiered Bonus)
+function getHeroRankBonus(rank) {
+    if (rank <= 5) return 500;  // 1~3위: 500점
+    if (rank <= 10) return 300; // 4~10위: 300점
+    if (rank <= 20) return 100; // 11~20위: 100점
+    return 0;
+}
+
+// [설정] 랭킹 도움말 모달
+window.toggleRankingHelp = function() {
+    const modal = document.getElementById('ranking-help-modal');
+    if (modal) {
+        modal.classList.toggle('hidden');
+    }
+};
+
+// [보조 함수] 시간 정렬용
+function parseTimeForSort(timeStr) {
+    if (!timeStr) return 999999;
+    const cleanStr = timeStr.replace(/[^0-9:]/g, ''); 
+    const parts = cleanStr.split(':');
+    if (parts.length === 2) {
+        return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10); 
+    } else if (parts.length === 3) {
+        return parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
+    }
+    return 999999;
+}
+
+function renderRankingSlide() {
+    const lang = localStorage.getItem('owlog_lang') || 'ko';
+    const container = document.getElementById('content-ranking');
+    const skContainer = document.getElementById('content-sk-ranking');
+    if (skContainer) skContainer.classList.add('hidden');
+
+    if (!container || !rankingDataCache.length || !heroDataCache || !translations[lang]) return;
+    if (rankingTimeout) { clearTimeout(rankingTimeout); rankingTimeout = null; }
+
+    const masterHeroes = heroDataCache.characters;
+
+    // 0. 전체 기록 정렬
+    const allRecordsSorted = [...rankingDataCache].sort((a, b) => {
+        if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+        return parseTimeForSort(a.time) - parseTimeForSort(b.time);
+    });
+
+    // [캐릭터 보너스] 캐릭터별 순위 산정 및 점수 맵핑
+    const userHeroBonusMap = {}; 
+
+    masterHeroes.forEach(hero => {
+        const enName = hero.english_name;
+        const koName = hero.korean_name;
+
+        // 해당 캐릭터(한/영 통합) 기록 필터링
+        const heroRecords = allRecordsSorted.filter(r => r.character === enName || r.character === koName);
+
+        // 유저별 중복 제거
+        const uniqueMap = new Map();
+        heroRecords.forEach(r => {
+            if (!uniqueMap.has(r.userId)) uniqueMap.set(r.userId, r);
+        });
+        const uniqueHeroRecords = Array.from(uniqueMap.values());
+
+        // 순위별 보너스 부여
+        uniqueHeroRecords.forEach((record, index) => {
+            const rank = index + 1;
+            const bonus = getHeroRankBonus(rank);
+            if (bonus > 0) {
+                if (!userHeroBonusMap[record.userId]) userHeroBonusMap[record.userId] = 0;
+                userHeroBonusMap[record.userId] += bonus;
+            }
+        });
+    });
+
+    // 1. 모드별 랭킹 산정 (유저별 1개 기록만 유지)
+    const modes = ['Classic', 'Rift', 'Battlefield'];
+    const modeRankings = {};
+    
+    modes.forEach(mode => {
+        let rawList = rankingDataCache.filter(item => item.mode === mode);
+        
+          // (2) 정렬 로직 (최고 기록을 맨 위로 올리기 위함)
+        const sortFunc = (a, b) => {
+            if (mode === 'Battlefield') {
+                const levelDiff = (parseInt(b.level) || 0) - (parseInt(a.level) || 0);
+                if (levelDiff !== 0) return levelDiff;
+                return parseTimeForSort(a.time) - parseTimeForSort(b.time);
+            } else if (mode === 'Classic') {
+                // [클래식] 레벨 > 시간 (스테이지 무시)
+                const levelDiff = (parseInt(b.level) || 0) - (parseInt(a.level) || 0);
+                if (levelDiff !== 0) return levelDiff;
+                
+                // [균열] 스테이지 > 레벨 > 시간
+                const stageDiff = (parseInt(b.stage) || 0) - (parseInt(a.stage) || 0);
+                if (stageDiff !== 0) return stageDiff;
+
+                return parseTimeForSort(a.time) - parseTimeForSort(b.time);
+            } else {
+                const levelDiff = (parseInt(b.level) || 0) - (parseInt(a.level) || 0);
+                if (levelDiff !== 0) return levelDiff;
+                return parseTimeForSort(a.time) - parseTimeForSort(b.time);
+            }
+        };
+        
+        rawList.sort(sortFunc);
+
+        const uniqueUserMap = new Map();
+        rawList.forEach(item => {
+            if (!uniqueUserMap.has(item.userId)) {
+                uniqueUserMap.set(item.userId, item);
+            }
+        });
+        const uniqueList = Array.from(uniqueUserMap.values());
+
+        for (let i = 0; i < uniqueList.length; i++) {
+            const getCompareKey = (itm) => {
+                const timeVal = parseTimeForSort(itm.time);
+                if (mode === 'Battlefield') return `${parseInt(itm.totalScore) || 0}_${timeVal}`;
+                if (mode === 'Classic') return `${itm.level}_${timeVal}`;
+                return `${itm.stage}_${itm.level}_${timeVal}`;
+            };
+
+            if (i > 0 && getCompareKey(uniqueList[i]) === getCompareKey(uniqueList[i - 1])) {
+                uniqueList[i].realRank = uniqueList[i - 1].realRank;
+            } else {
+                uniqueList[i].realRank = i + 1;
+            }
+        }
+        
+        modeRankings[mode] = uniqueList;
+    });
+
+    // 2. 유저별 데이터 집계 (★이름 정규화 적용★)
+    const userStats = {};
+
+    rankingDataCache.forEach(item => {
+        if (!userStats[item.userId]) {
+            userStats[item.userId] = {
+                userId: item.userId,
+                region: item.region,
+                bestRecord: item,
+                playedCharacters: new Set(),
+                mainCharacter: null, // 초기화
+                maxCharCount: 0,
+                charCounts: {},
+                totalPoints: 0,
+                detailRanks: { Classic: '-', Rift: '-', Battlefield: '-' }
+            };
+        }
+        
+        const u = userStats[item.userId];
+
+        // [핵심 변경] 캐릭터 이름 정규화 (한글 -> 영어 통일)
+        let normalizedCharName = item.character;
+        // hero.json에서 매칭되는 정보 찾기
+        const matchedHero = masterHeroes.find(h => 
+            h.english_name === item.character || h.korean_name === item.character
+        );
+        if (matchedHero) {
+            normalizedCharName = matchedHero.english_name; // 무조건 영어 이름으로 통일
+        }
+
+        // 정규화된 이름으로 Set에 추가 (중복 방지: Yoiko와 요이코가 하나가 됨)
+        u.playedCharacters.add(normalizedCharName);
+        
+        // 정규화된 이름으로 카운트 증가
+        u.charCounts[normalizedCharName] = (u.charCounts[normalizedCharName] || 0) + 1;
+        
+        // 주력 캐릭터(가장 많이 플레이한) 갱신 로직
+        if (u.charCounts[normalizedCharName] > u.maxCharCount) {
+            u.maxCharCount = u.charCounts[normalizedCharName];
+            u.mainCharacter = normalizedCharName;
+            // 대표 이미지 등은 최신 정보로 갱신 (선택사항)
+            if (!u.bestRecord) u.bestRecord = item; 
+        }
+        // 초기 bestRecord 설정
+        if (!u.mainCharacter) u.mainCharacter = normalizedCharName;
+        if (!u.bestRecord) u.bestRecord = item;
+    });
+
+    // 3. GP 포인트 계산
+    Object.values(userStats).forEach(user => {
+        // [A] 모드별
+        modes.forEach(mode => {
+            const list = modeRankings[mode];
+            const myRecord = list.find(r => r.userId === user.userId);
+            
+            if (myRecord) {
+                const rank = myRecord.realRank;
+                user.detailRanks[mode] = rank;
+                const points = Math.max(0, BASE_SCORE_PER_ITEM - (rank - 1));
+                user.totalPoints += points;
+            } else {
+                user.detailRanks[mode] = '-';
+            }
+        });
+
+        // [B] 캐릭터 보너스
+        if (userHeroBonusMap[user.userId]) {
+            user.totalPoints += userHeroBonusMap[user.userId];
+        }
+    });
+
+    // 4. 정렬
+    const sortedUsers = Object.values(userStats).sort((a, b) => b.totalPoints - a.totalPoints);
+    const topUsers = sortedUsers.slice(0, 10);
+
+    // 5. 렌더링
+    container.innerHTML = '';
+    container.className = "mt-4 space-y-4 md:col-span-2 relative";
+
+    // 모달 업데이트
+    if (!document.getElementById('ranking-help-modal')) {
+        const modalHtml = `
+            <div id="ranking-help-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onclick="toggleRankingHelp()">
+                <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-fade-in" onclick="event.stopPropagation()">
+                    <h3 class="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-indigo-600"></i>
+                        ${lang === 'ko' ? '랭킹 포인트(GP) 산정 기준' : 'Ranking Points (GP) Guide'}
+                    </h3>
+                    <div class="space-y-3 text-xs text-gray-600 bg-gray-50 p-3 rounded-lg leading-relaxed">
+                        <p>
+                            <span class="font-bold text-indigo-600">① ${lang === 'ko' ? '모드별 점수' : 'Mode Points'}:</span> 
+                            ${lang === 'ko' ? '각 모드(클래식, 균열, 전장) 1위 달성 시 10,000점 (순위당 -1점)' : 'Max 10,000 pts per mode ranking.'}
+                        </p>
+                        <p>
+                            <span class="font-bold text-indigo-600">② ${lang === 'ko' ? '캐릭터 보너스' : 'Hero Bonus'}:</span> 
+                            ${lang === 'ko' ? `각 캐릭터별 순위에 따라 보너스 점수가 차등 지급됩니다.<br>(1-5위: 500점 / 6-10위: 300점 / 11-20위: 100점)` : `Bonus pts for Hero Rank:<br>#1-5: 500pts / #6-10: 300pts / #11-20: 100pts`}
+                        </p>
+                        <p>
+                            <span class="font-bold text-indigo-600">③ ${lang === 'ko' ? '기타 기준' : 'Etc'}:</span> 
+                            ${lang === 'ko' ? '기록이 동일하면 공동 순위가 적용됩니다.' : 'Ties get the same rank.'}
+                        </p>
+                        <p class="border-t border-gray-200 pt-2 mt-2">
+                            ${lang === 'ko' ? '※ 합산 점수(GP)가 가장 높은 유저가 종합 1위입니다.' : '※ Highest total GP is Rank 1.'}
+                        </p>
+                    </div>
+                    <button onclick="toggleRankingHelp()" class="mt-4 w-full py-2.5 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors">
+                        ${lang === 'ko' ? '확인' : 'Close'}
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    if (topUsers.length === 0) return;
+
+    const section = document.createElement('div');
+    section.className = "space-y-3";
+
+    const header = document.createElement('div');
+    header.className = "flex items-center justify-between px-1 mb-2";
+    const titleText = lang === 'ko' ? "종합 랭킹" : "Grand Slam";
+    
+    header.innerHTML = `
+        <h3 class="font-bold text-sm md:text-base flex items-center gap-2 text-gray-800">
+            <span class="w-1 h-4 rounded-sm bg-indigo-600"></span>
+            ${titleText}
+        </h3>
+        <button onclick="toggleRankingHelp()" class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors group">
+            <i class="fa-solid fa-circle-question text-gray-400 group-hover:text-indigo-600 text-xs"></i>
+            <span class="text-[10px] font-bold text-gray-500 group-hover:text-gray-700">
+                ${lang === 'ko' ? '산정 기준' : 'Guide'}
+            </span>
+        </button>
+    `;
+    section.appendChild(header);
+
+    const listGrid = document.createElement('div');
+    listGrid.className = "grid grid-cols-1 md:grid-cols-2 gap-3";
+
+    topUsers.forEach((user, index) => {
+        const rank = index + 1;
+        
+        const charName = user.mainCharacter;
+        const heroInfo = heroDataCache.characters.find(c => c.english_name === charName || c.korean_name === charName);
+        const englishName = heroInfo ? heroInfo.english_name : charName;
+        const displayName = heroInfo ? (lang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : charName;
+        const fileName = englishName.replace(/\s+/g, '_');
+        const imgPath = `./heroes/${fileName}.webp`;
+        const flagUrl = `https://flagcdn.com/w40/${(user.region || 'us').toLowerCase()}.png`;
+
+        const uniquePlayedCount = user.playedCharacters.size;
+        const scoreDisplay = user.totalPoints.toLocaleString();
+
+        let objectPosition = "center 10%";
+        let imageScale = "scale(1.3)";
+        if (englishName === "Alessia") objectPosition = "center 40%";
+        if (englishName === "Yoiko") { objectPosition = "center 10%"; imageScale = "scale(1.8) translateX(-5px)"; }
+        if (englishName === "Vesper") { objectPosition = "center 30%"; imageScale = "scale(1.7)"; }
+        if (englishName === "Jadetalon") { objectPosition = "center -20%"; imageScale = "scale(2) translateX(10px)"; }
+        if (englishName === "Adelvyn") { objectPosition = "center 30%"; imageScale = "scale(1.3) translateX(-10px)"; }
+        if (englishName === "Peddler") { objectPosition = "center 10%"; imageScale = "scale(1) translateX(5px)"; }
+        if (englishName === "Huo Yufeng") { objectPosition = "center 10%"; imageScale = "scale(1.5) translateX(5px)"; }
+        if (englishName === "Hua Ling") { objectPosition = "center 10%"; imageScale = "scale(1.5) translateX(2px) translateY(5px)"; }
+        if (englishName === "Zilan") { objectPosition = "center 30%"; imageScale = "scale(1)"; }
+        if (englishName === "Synthia") { objectPosition = "center 20%"; imageScale = "scale(1.5) translateX(-15px)"; }
+        if (englishName === "Anibella") { objectPosition = "center 10%"; imageScale = "scale(1.5)"; }
+
+        // [수정됨] 뱃지를 더 작고 컴팩트하게 변경
+        const createBadge = (label, value, type) => {
+            let colors = '';
+            let content = '';
+            
+            if (type === 'H') { 
+                colors = 'text-emerald-600 bg-emerald-600 border-emerald-600';
+                content = `${value}`;
+            } else if (value === '-') {
+                colors = 'bg-gray-50 border-gray-100 text-gray-400 opacity-60 grayscale';
+                content = '-';
+            } else {
+                if (label === 'CL') colors = 'text-red-600 bg-red-600 border-red-600';
+                if (label === 'RF') colors = 'text-blue-600 bg-blue-600 border-blue-600';
+                if (label === 'BF') colors = 'text-purple-600 bg-purple-600 border-purple-600';
+                content = `#${value}`;
+            }
+
+            // 변경사항:
+            // 1. px-1.5 -> px-1 (좌우 여백 축소)
+            // 2. min-w-[32px] -> min-w-[22px] (최소 너비 대폭 축소)
+            // 3. text-[9px] -> text-[8px] (폰트 사이즈 축소)
+            // 4. gap-1 -> gap-0.5 (내부 간격 축소)
+            return `
+                <div class="flex items-center gap-0.5 px-1 py-0.5 rounded ${colors} bg-opacity-10 border border-opacity-20 border-current min-w-[22px] justify-center">
+                    <span class="text-[8px] font-extrabold tracking-tighter">${label}</span>
+                    <span class="text-[8px] font-bold">${content}</span>
+                </div>
+            `;
+        };
+
+        const cBadge = createBadge('CL', user.detailRanks.Classic, 'R');
+        const rBadge = createBadge('RF', user.detailRanks.Rift, 'R');
+        const bBadge = createBadge('BF', user.detailRanks.Battlefield, 'R');
+        const hBadge = createBadge('H', uniquePlayedCount, 'H');
+
+        const card = document.createElement('div');
+        card.className = "flex items-center justify-between p-2.5 bg-white rounded-xl border border-gray-100 shadow-sm transition-all duration-500 hover:shadow-md"; // p-3 -> p-2.5로 축소
+        
+        card.innerHTML = `
+            <div class="flex items-center gap-2.5">
+                <span class="font-bold ${rank <= 3 ? 'text-indigo-600' : 'text-gray-400'} w-3.5 text-center italic text-xs">${rank}</span>
+                <div class="w-10 h-5 md:w-16 md:h-7 rounded bg-gray-100 border border-gray-100 overflow-hidden flex-shrink-0 relative">
+                    <img src="${imgPath}" onerror="this.src='https://via.placeholder.com/48x20?text=Hero'" 
+                         class="w-full h-full object-cover grayscale-[30%]" style="object-position: ${objectPosition}; transform: ${imageScale};">
+                    <span class="absolute right-0 bottom-0 bg-indigo-600/90 text-[6px] md:text-[8px] text-white px-0.5 font-bold">
+                        ALL
+                    </span>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-1">
+                        <img src="${flagUrl}" class="w-3.5 h-2.5 object-cover rounded-[1px] shadow-sm opacity-80">
+                        <span class="font-bold text-xs md:text-sm text-gray-700 cursor-pointer hover:text-black transition-colors truncate max-w-[80px] md:max-w-none" onclick="handleDirectJump('${user.userId}')">${user.userId}</span>
+                        <span class="hidden md:inline text-[9px] text-gray-400 font-medium">| ${displayName}</span>
+                    </div>
+                    <div class="flex items-center gap-0.5">
+                        ${cBadge}
+                        ${rBadge}
+                        ${bBadge}
+                        ${hBadge}
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col items-end justify-center h-full pl-1">
+                <span class="text-[11px] md:text-[13px] font-black text-gray-900 tabular-nums tracking-tight">
+                    ${scoreDisplay}
+                </span>
+                <span class="text-[7px] md:text-[8px] text-gray-400 font-bold uppercase tracking-wider">GP Score</span>
+            </div>
+        `;
+        listGrid.appendChild(card);
+    });
+
+    section.appendChild(listGrid);
+    container.appendChild(section);
+}
 /**
  * OWLOG - OWL 메인 랭킹 슬라이드 렌더링
  * SK 로더가 겹치지 않도록 숨김 로직 추가
  */
-function renderRankingSlide() {
+function renderRankingSl1ide() {
     const lang = localStorage.getItem('owlog_lang') || 'ko';
     const container = document.getElementById('content-ranking');
 
@@ -837,59 +1082,98 @@ async function initDetailedRankPage() {
     handleRankFilterChange();
 }
 
-/**
- * 상세 랭킹 페이지 - 필터링 및 데이터 갱신 로직 (전체)
- * 탭으로 선택된 모드와 드롭다운 필터들을 조합하여 결과 출력
- */
+// [보조 함수] 시간 문자열을 초 단위 숫자로 변환 (정렬용)
+function parseTimeForSort(timeStr) {
+    if (!timeStr) return 999999;
+    const cleanStr = timeStr.replace(/[^0-9:]/g, '');
+    const parts = cleanStr.split(':');
+    if (parts.length === 2) {
+        return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    } else if (parts.length === 3) {
+        return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+    }
+    return 999999;
+}
+
 function handleRankFilterChange() {
-    // 1. 현재 선택된 모든 필터 값 가져오기
-    const modeVal = currentModeTab; // 탭 버튼 클릭 시 저장된 전역 변수 ("Classic" 또는 "Rift")
+    // 1. 현재 필터 값 가져오기
+    const modeVal = currentModeTab;
     const heroVal = document.getElementById('detailed-filter-hero').value;
     const levelVal = document.getElementById('detailed-filter-level').value;
     const regionVal = document.getElementById('detailed-filter-region').value;
 
-    // 히어로 데이터에서 현재 선택된 영웅의 정보 찾기 (영어/한국어 매칭용)
     const selectedHeroInfo = heroDataCache ? heroDataCache.characters.find(c => c.english_name === heroVal) : null;
 
-    // 2. 전체 데이터 캐시(rankingDataCache)에서 조건에 맞는 항목 필터링
-    const filteredResult = rankingDataCache.filter(item => {
-        /**
-         * [모드 필터링] 
-         * 탭에서 선택된 모드와 데이터의 mode 값이 일치해야 함
-         * 시트 데이터의 미세한 공백 차이를 방지하기 위해 trim() 적용
-         */
+    // 2. 1차 필터링
+    let filteredResult = rankingDataCache.filter(item => {
         const itemMode = (item.mode || "").trim();
         const matchMode = itemMode === modeVal;
 
-        // [영웅 필터링]
         let matchHero = true;
         if (heroVal && selectedHeroInfo) {
-            // 시트에 저장된 이름이 영문이거나 국문인 경우 모두 대응
             matchHero = (item.character === selectedHeroInfo.english_name ||
                 item.character === selectedHeroInfo.korean_name);
         }
 
-        // [레벨 필터링] (고통 레벨)
         const matchLevel = !levelVal || String(item.level) === levelVal;
-
-        // [국가 필터링]
         const matchRegion = !regionVal || item.region === regionVal;
 
-        // 모든 조건이 참일 때만 결과에 포함
         return matchMode && matchHero && matchLevel && matchRegion;
     });
 
-    /**
-     * 3. 유저별 최고 기록 추출
-     * 필터링된 결과(특정 모드/영웅 등) 내에서 유저 한 명당 
-     * 가장 성적이 좋은 기록(레벨 > 단계 > 시간 순) 단 하나만 선별합니다.
-     */
+    // 3. [정렬 로직 정의]
+    const sortFunction = (a, b) => {
+        // ---------------------------------------------------------
+        // [CASE 1] 전장 (Battlefield)
+        // 1순위: 점수 (높은순) / 2순위: 시간 (빠른순)
+        // ---------------------------------------------------------
+        if (modeVal === 'Battlefield') {
+            const levelDiff = (parseInt(b.level) || 0) - (parseInt(a.level) || 0);
+            if (levelDiff !== 0) return levelDiff;
+
+            return parseTimeForSort(a.time) - parseTimeForSort(b.time);
+        }
+
+        // ---------------------------------------------------------
+        // [CASE 2] 클래식 (Classic)
+        // 1순위: 레벨 (높은순) / 2순위: 스테이지 (높은순) / 3순위: 시간 (빠른순)
+        // ---------------------------------------------------------
+        else if (modeVal === 'Classic') {
+            // (1) 레벨 비교
+            const levelDiff = (parseInt(b.level) || 0) - (parseInt(a.level) || 0);
+            if (levelDiff !== 0) return levelDiff; // 레벨이 다르면 여기서 끝
+
+            // (2) 스테이지 비교 (요청하신 부분)
+            const stageDiff = (parseInt(b.stage) || 0) - (parseInt(a.stage) || 0);
+            if (stageDiff !== 0) return stageDiff; // 스테이지가 다르면 여기서 끝 (높은게 위로)
+
+            // (3) 시간 비교
+            // 위에서 레벨과 스테이지가 모두 같을 때만 여기로 내려옵니다.
+            return parseTimeForSort(a.time) - parseTimeForSort(b.time); // 시간 빠른게(작은게) 위로
+        }
+
+        // ---------------------------------------------------------
+        // [CASE 3] 균열 (Rift) 및 기타
+        // 1순위: 스테이지 (높은순) / 2순위: 레벨 (높은순) / 3순위: 시간 (빠른순)
+        // ---------------------------------------------------------
+        else {
+            const levelDiff = (parseInt(b.level) || 0) - (parseInt(a.level) || 0);
+            if (levelDiff !== 0) return levelDiff;
+
+            return parseTimeForSort(a.time) - parseTimeForSort(b.time);
+        }
+    };
+
+    // 4. 1차 정렬 (Best Record 추출용)
+    filteredResult.sort(sortFunction);
+
+    // 5. 유저별 최고 기록 추출
     detailedRankData = getBestRecordsPerUser(filteredResult);
 
-    /**
-     * 4. UI 갱신
-     * 리스트의 첫 페이지부터 보여주도록 설정하고 화면을 다시 그립니다.
-     */
+    // 6. 최종 재정렬 (화면 표시용)
+    detailedRankData.sort(sortFunction);
+
+    // 7. UI 갱신
     detailedCurrentPage = 1;
     if (typeof renderDetailedRankList === 'function') {
         renderDetailedRankList();
