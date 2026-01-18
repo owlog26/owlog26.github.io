@@ -247,7 +247,6 @@ if (imageInput) {
  * 중복 방지를 위해 기존 confirmCrop, closeCropModal 함수는 삭제되었습니다.
  * 이 기능들은 이제 script.js에서 통합 관리됩니다.
  */
-
 function levenshtein(a, b) {
     const m = Array.from({ length: a.length + 1 }, (_, i) => [i]);
     for (let j = 0; j <= b.length; m[0][j] = j++);
