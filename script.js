@@ -409,14 +409,16 @@ function getItemsPerPage() {
     // md 브레이크포인트(768px) 이상이면 10개, 아니면 5개
     return window.innerWidth >= 768 ? 10 : 5;
 }
-// [설정] 항목당 만점 점수 (1위 10,000점)
-const BASE_SCORE_PER_ITEM = 10000;
+// [설정] 항목당 만점 점수
+const BASE_SCORE_PER_ITEM = 10000; 
+// [설정] 순위당 차감 점수 (1위와 2위의 점수 차이) -> 100점으로 상향 조정
+const SCORE_DEDUCTION_PER_RANK = 200; 
 
-// [설정] 캐릭터 랭킹 순위별 보너스 점수 (Tiered Bonus)
+// [설정] 캐릭터 랭킹 순위별 보너스 점수
 function getHeroRankBonus(rank) {
-    if (rank <= 5) return 500;  // 1~3위: 500점
-    if (rank <= 10) return 300; // 4~10위: 300점
-    if (rank <= 20) return 100; // 11~20위: 100점
+    if (rank <= 3) return 500;
+    if (rank <= 10) return 300;
+    if (rank <= 20) return 100;
     return 0;
 }
 
@@ -458,24 +460,19 @@ function renderRankingSlide() {
         return parseTimeForSort(a.time) - parseTimeForSort(b.time);
     });
 
-    // [캐릭터 보너스] 캐릭터별 순위 산정 및 점수 맵핑
+    // [캐릭터 보너스]
     const userHeroBonusMap = {}; 
-
     masterHeroes.forEach(hero => {
         const enName = hero.english_name;
         const koName = hero.korean_name;
-
-        // 해당 캐릭터(한/영 통합) 기록 필터링
         const heroRecords = allRecordsSorted.filter(r => r.character === enName || r.character === koName);
 
-        // 유저별 중복 제거
         const uniqueMap = new Map();
         heroRecords.forEach(r => {
             if (!uniqueMap.has(r.userId)) uniqueMap.set(r.userId, r);
         });
         const uniqueHeroRecords = Array.from(uniqueMap.values());
 
-        // 순위별 보너스 부여
         uniqueHeroRecords.forEach((record, index) => {
             const rank = index + 1;
             const bonus = getHeroRankBonus(rank);
@@ -486,30 +483,26 @@ function renderRankingSlide() {
         });
     });
 
-    // 1. 모드별 랭킹 산정 (유저별 1개 기록만 유지)
+    // 1. 모드별 랭킹 산정
     const modes = ['Classic', 'Rift', 'Battlefield'];
     const modeRankings = {};
     
     modes.forEach(mode => {
         let rawList = rankingDataCache.filter(item => item.mode === mode);
         
-          // (2) 정렬 로직 (최고 기록을 맨 위로 올리기 위함)
         const sortFunc = (a, b) => {
             if (mode === 'Battlefield') {
-                const levelDiff = (parseInt(b.level) || 0) - (parseInt(a.level) || 0);
-                if (levelDiff !== 0) return levelDiff;
+                const scoreA = parseInt(a.totalScore) || 0;
+                const scoreB = parseInt(b.totalScore) || 0;
+                if (scoreB !== scoreA) return scoreB - scoreA;
                 return parseTimeForSort(a.time) - parseTimeForSort(b.time);
             } else if (mode === 'Classic') {
-                // [클래식] 레벨 > 시간 (스테이지 무시)
                 const levelDiff = (parseInt(b.level) || 0) - (parseInt(a.level) || 0);
                 if (levelDiff !== 0) return levelDiff;
-                
-                // [균열] 스테이지 > 레벨 > 시간
-                const stageDiff = (parseInt(b.stage) || 0) - (parseInt(a.stage) || 0);
-                if (stageDiff !== 0) return stageDiff;
-
                 return parseTimeForSort(a.time) - parseTimeForSort(b.time);
             } else {
+                const stageDiff = (parseInt(b.stage) || 0) - (parseInt(a.stage) || 0);
+                if (stageDiff !== 0) return stageDiff;
                 const levelDiff = (parseInt(b.level) || 0) - (parseInt(a.level) || 0);
                 if (levelDiff !== 0) return levelDiff;
                 return parseTimeForSort(a.time) - parseTimeForSort(b.time);
@@ -544,7 +537,7 @@ function renderRankingSlide() {
         modeRankings[mode] = uniqueList;
     });
 
-    // 2. 유저별 데이터 집계 (★이름 정규화 적용★)
+    // 2. 유저별 데이터 집계
     const userStats = {};
 
     rankingDataCache.forEach(item => {
@@ -554,7 +547,7 @@ function renderRankingSlide() {
                 region: item.region,
                 bestRecord: item,
                 playedCharacters: new Set(),
-                mainCharacter: null, // 초기화
+                mainCharacter: null, 
                 maxCharCount: 0,
                 charCounts: {},
                 totalPoints: 0,
@@ -564,37 +557,30 @@ function renderRankingSlide() {
         
         const u = userStats[item.userId];
 
-        // [핵심 변경] 캐릭터 이름 정규화 (한글 -> 영어 통일)
+        // 이름 정규화 (한글->영어)
         let normalizedCharName = item.character;
-        // hero.json에서 매칭되는 정보 찾기
         const matchedHero = masterHeroes.find(h => 
             h.english_name === item.character || h.korean_name === item.character
         );
         if (matchedHero) {
-            normalizedCharName = matchedHero.english_name; // 무조건 영어 이름으로 통일
+            normalizedCharName = matchedHero.english_name;
         }
 
-        // 정규화된 이름으로 Set에 추가 (중복 방지: Yoiko와 요이코가 하나가 됨)
         u.playedCharacters.add(normalizedCharName);
-        
-        // 정규화된 이름으로 카운트 증가
         u.charCounts[normalizedCharName] = (u.charCounts[normalizedCharName] || 0) + 1;
         
-        // 주력 캐릭터(가장 많이 플레이한) 갱신 로직
         if (u.charCounts[normalizedCharName] > u.maxCharCount) {
             u.maxCharCount = u.charCounts[normalizedCharName];
             u.mainCharacter = normalizedCharName;
-            // 대표 이미지 등은 최신 정보로 갱신 (선택사항)
             if (!u.bestRecord) u.bestRecord = item; 
         }
-        // 초기 bestRecord 설정
         if (!u.mainCharacter) u.mainCharacter = normalizedCharName;
         if (!u.bestRecord) u.bestRecord = item;
     });
 
-    // 3. GP 포인트 계산
+    // 3. GP 포인트 계산 (★수정됨: 순위 격차 확대★)
     Object.values(userStats).forEach(user => {
-        // [A] 모드별
+        // [A] 모드별 포인트
         modes.forEach(mode => {
             const list = modeRankings[mode];
             const myRecord = list.find(r => r.userId === user.userId);
@@ -602,7 +588,10 @@ function renderRankingSlide() {
             if (myRecord) {
                 const rank = myRecord.realRank;
                 user.detailRanks[mode] = rank;
-                const points = Math.max(0, BASE_SCORE_PER_ITEM - (rank - 1));
+                
+                // [변경] 순위당 100점 차감 (변별력 강화)
+                // 1위: 10000, 2위: 9900, 3위: 9800 ...
+                const points = Math.max(0, BASE_SCORE_PER_ITEM - ((rank - 1) * SCORE_DEDUCTION_PER_RANK));
                 user.totalPoints += points;
             } else {
                 user.detailRanks[mode] = '-';
@@ -623,7 +612,10 @@ function renderRankingSlide() {
     container.innerHTML = '';
     container.className = "mt-4 space-y-4 md:col-span-2 relative";
 
-    // 모달 업데이트
+    const titleText = translations[lang]['ranking_gp_title'] || (lang === 'ko' ? "최고의 플레이어 (종합 랭킹)" : "Best Players (Grand Prix)");
+    const guideBtnText = translations[lang]['ranking_guide'] || (lang === 'ko' ? "산정 기준" : "Guide");
+
+    // 모달 업데이트 (가이드 내용 반영)
     if (!document.getElementById('ranking-help-modal')) {
         const modalHtml = `
             <div id="ranking-help-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onclick="toggleRankingHelp()">
@@ -635,15 +627,11 @@ function renderRankingSlide() {
                     <div class="space-y-3 text-xs text-gray-600 bg-gray-50 p-3 rounded-lg leading-relaxed">
                         <p>
                             <span class="font-bold text-indigo-600">① ${lang === 'ko' ? '모드별 점수' : 'Mode Points'}:</span> 
-                            ${lang === 'ko' ? '각 모드(클래식, 균열, 전장) 1위 달성 시 10,000점 (순위당 -1점)' : 'Max 10,000 pts per mode ranking.'}
+                            ${lang === 'ko' ? `각 모드 1위 10,000점 (순위당 <strong>-${SCORE_DEDUCTION_PER_RANK}점</strong> 차감)` : `Max 10,000 pts (<strong>-${SCORE_DEDUCTION_PER_RANK} pts</strong> per rank).`}
                         </p>
                         <p>
                             <span class="font-bold text-indigo-600">② ${lang === 'ko' ? '캐릭터 보너스' : 'Hero Bonus'}:</span> 
-                            ${lang === 'ko' ? `각 캐릭터별 순위에 따라 보너스 점수가 차등 지급됩니다.<br>(1-5위: 500점 / 6-10위: 300점 / 11-20위: 100점)` : `Bonus pts for Hero Rank:<br>#1-5: 500pts / #6-10: 300pts / #11-20: 100pts`}
-                        </p>
-                        <p>
-                            <span class="font-bold text-indigo-600">③ ${lang === 'ko' ? '기타 기준' : 'Etc'}:</span> 
-                            ${lang === 'ko' ? '기록이 동일하면 공동 순위가 적용됩니다.' : 'Ties get the same rank.'}
+                            ${lang === 'ko' ? `캐릭터별 순위에 따라 보너스 추가.<br>(1-3위: 500점 / 4-10위: 300점 / 11-20위: 100점)` : `Bonus pts for Hero Rank:<br>#1-3: 500pts / #4-10: 300pts / #11-20: 100pts`}
                         </p>
                         <p class="border-t border-gray-200 pt-2 mt-2">
                             ${lang === 'ko' ? '※ 합산 점수(GP)가 가장 높은 유저가 종합 1위입니다.' : '※ Highest total GP is Rank 1.'}
@@ -665,7 +653,6 @@ function renderRankingSlide() {
 
     const header = document.createElement('div');
     header.className = "flex items-center justify-between px-1 mb-2";
-    const titleText = lang === 'ko' ? "종합 랭킹" : "Grand Slam";
     
     header.innerHTML = `
         <h3 class="font-bold text-sm md:text-base flex items-center gap-2 text-gray-800">
@@ -675,7 +662,7 @@ function renderRankingSlide() {
         <button onclick="toggleRankingHelp()" class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors group">
             <i class="fa-solid fa-circle-question text-gray-400 group-hover:text-indigo-600 text-xs"></i>
             <span class="text-[10px] font-bold text-gray-500 group-hover:text-gray-700">
-                ${lang === 'ko' ? '산정 기준' : 'Guide'}
+                ${guideBtnText}
             </span>
         </button>
     `;
@@ -712,7 +699,6 @@ function renderRankingSlide() {
         if (englishName === "Synthia") { objectPosition = "center 20%"; imageScale = "scale(1.5) translateX(-15px)"; }
         if (englishName === "Anibella") { objectPosition = "center 10%"; imageScale = "scale(1.5)"; }
 
-        // [수정됨] 뱃지를 더 작고 컴팩트하게 변경
         const createBadge = (label, value, type) => {
             let colors = '';
             let content = '';
@@ -730,11 +716,6 @@ function renderRankingSlide() {
                 content = `#${value}`;
             }
 
-            // 변경사항:
-            // 1. px-1.5 -> px-1 (좌우 여백 축소)
-            // 2. min-w-[32px] -> min-w-[22px] (최소 너비 대폭 축소)
-            // 3. text-[9px] -> text-[8px] (폰트 사이즈 축소)
-            // 4. gap-1 -> gap-0.5 (내부 간격 축소)
             return `
                 <div class="flex items-center gap-0.5 px-1 py-0.5 rounded ${colors} bg-opacity-10 border border-opacity-20 border-current min-w-[22px] justify-center">
                     <span class="text-[8px] font-extrabold tracking-tighter">${label}</span>
@@ -749,7 +730,7 @@ function renderRankingSlide() {
         const hBadge = createBadge('H', uniquePlayedCount, 'H');
 
         const card = document.createElement('div');
-        card.className = "flex items-center justify-between p-2.5 bg-white rounded-xl border border-gray-100 shadow-sm transition-all duration-500 hover:shadow-md"; // p-3 -> p-2.5로 축소
+        card.className = "flex items-center justify-between p-2.5 bg-white rounded-xl border border-gray-100 shadow-sm transition-all duration-500 hover:shadow-md";
         
         card.innerHTML = `
             <div class="flex items-center gap-2.5">
@@ -2259,93 +2240,135 @@ function switchModeTab(mode) {
  * [script.js] 소울 나이트 전용 랭킹 슬라이드 렌더링
  * 콤팩트 스타일(p-3) 및 레이아웃 최적화 버전
  */
-
-
-function renderSKRankingSlid1e() {
+function renderSKRankingSlide() {
     const lang = localStorage.getItem('owlog_lang') || 'ko';
     const container = document.getElementById('content-sk-ranking');
 
-    // 1. 필수 데이터 및 컨테이너 확인
-    if (!container || !rankingDataCache.length || !translations[lang]) return;
+    if (!container || !rankingDataCache.length || !heroDataCache || !translations[lang]) return;
 
-    // 2. 기존 로딩 UI 및 잔상 제거 (로딩 중복 방지 핵심)
     container.innerHTML = '';
+    container.className = "mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 md:col-span-2";
 
-    // 3. SK 모드 데이터 추출 및 정렬 (Top 6)
-    const bestData = getBestRecordsPerUser(rankingDataCache);
-    const skTop6 = bestData.filter(item =>
-        item.mode && item.mode.trim().toUpperCase() === 'SK'
-    ).slice(0, 22);
+    // [수정됨] 언어별 텍스트 설정 (JSON 키 우선 사용 -> 없으면 기본값)
+    const titleText = translations[lang]['character_leaderboard'] || (lang === 'ko' ? "캐릭터 리더보드" : "Character Leaderboard");
+    const subTitleText = translations[lang]['global_best'] || (lang === 'ko' ? "글로벌 베스트" : "Global Best");
+    const playsLabel = translations[lang]['plays_label'] || (lang === 'ko' ? '회 플레이' : 'PLAYS');
 
-    // 데이터가 없을 경우 안내 문구 출력
-    if (skTop6.length === 0) {
-        const msg = translations[lang]['no_sk_records'] || "No SK Records Found";
-        container.innerHTML = `<div class="py-20 text-center text-gray-300 font-bold uppercase md:col-span-2">${msg}</div>`;
-        return;
-    }
+    // 1. 데이터가 있는 캐릭터를 상단으로 정렬
+    const sortedHeroes = [...heroDataCache.characters].map(hero => {
+        const records = rankingDataCache.filter(r =>
+            r.character === hero.english_name || r.character === hero.korean_name
+        );
+        return { ...hero, records };
+    }).sort((a, b) => b.records.length - a.records.length);
 
-    // 4. 헤더 생성 (마진 mb-1로 밀착)
-    const titleVoid = translations[lang]['void'] || "Void";
+    // 2. 헤더 생성
     const header = document.createElement('div');
     header.className = "flex items-center justify-between px-1 mb-1 md:col-span-2";
     header.innerHTML = `
         <h3 class="font-bold text-sm md:text-base flex items-center gap-2 text-gray-800">
-            <span class="w-1 h-4 rounded-sm bg-orange-500"></span>
-            <span data-i18n="void">${titleVoid}</span>
+            <span class="w-1 h-4 rounded-sm bg-blue-500"></span>
+            <span>${titleText}</span>
         </h3>
-        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Top 6</span>
+        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">${subTitleText}</span>
     `;
     container.appendChild(header);
 
-    // 5. 카드 리스트 렌더링
-    skTop6.forEach((item, index) => {
-        const rank = index + 1;
-        const regionCode = (item.region || 'us').toLowerCase();
-        const flagUrl = `https://flagcdn.com/w40/${regionCode}.png`;
-
-        // [캐릭터명 치환] 한글/영어 혼용 데이터를 영어 파일명으로 변환
-        const heroInfo = (skHeroDataCache && skHeroDataCache.characters)
-            ? skHeroDataCache.characters.find(c => c.english_name === item.character || c.korean_name === item.character)
-            : null;
-
-        const englishName = heroInfo ? heroInfo.english_name : item.character;
+    // 3. 캐릭터 카드 생성
+    sortedHeroes.forEach((hero) => {
+        const englishName = hero.english_name;
+        const displayName = lang === 'ko' ? hero.korean_name : hero.english_name;
         const fileName = englishName.replace(/\s+/g, '_');
-        const imgPath = `./sk_heroes/${fileName}.webp`; // 영문 파일명 경로
-        const displayName = heroInfo ? (lang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : item.character;
+        const imgPath = `./heroes/${fileName}.webp`;
+        const totalPlays = hero.records.length; // 전체 플레이 횟수 계산
+
+        // [수정됨] 모드 라벨도 언어팩 적용
+        const modes = [
+            { id: 'Classic', label: translations[lang]['fissureSub'] || 'Classic' },
+            { id: 'Rift', label: translations[lang]['riftSub'] || 'Rift' },
+            { id: 'Battlefield', label: translations[lang]['battlefield'] || 'Battlefield' },
+            { id: 'SK', label: 'SK' }
+        ];
+
+        let modesHTML = "";
+        modes.forEach(mode => {
+            const modeRecords = hero.records.filter(r =>
+                r.mode && r.mode.trim().toLowerCase() === mode.id.toLowerCase()
+            );
+
+            if (modeRecords.length > 0) {
+                const best = [...modeRecords].sort((a, b) => {
+                    const lvA = parseInt(String(a.level || 0).replace(/[^0-9]/g, '')) || 0;
+                    const lvB = parseInt(String(b.level || 0).replace(/[^0-9]/g, '')) || 0;
+                    if (lvB !== lvA) return lvB - lvA;
+                    const stgA = parseInt(a.stage) || 0;
+                    const stgB = parseInt(b.stage) || 0;
+                    if (stgB !== stgA) return stgB - stgA;
+                    return String(a.time).localeCompare(String(b.time));
+                })[0];
+
+                const regionCode = (best.region || 'us').toLowerCase();
+                const flagUrl = `https://flagcdn.com/w40/${regionCode}.png`;
+
+                modesHTML += `
+                    <div class="flex-shrink-0 w-44 bg-gray-50/50 rounded-xl p-2.5 border border-gray-100 select-none">
+                        <div class="text-[9px] font-black text-blue-500 uppercase tracking-tighter mb-1.5 border-b border-blue-100/50 pb-1">
+                            ${mode.label}
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <img src="${flagUrl}" class="w-3.5 h-2.5 object-cover rounded-[1px] shadow-sm flex-shrink-0">
+                                <span class="text-[11px] font-bold text-gray-800 truncate">${best.userId}</span>
+                            </div>
+                            <span class="text-[10px] text-gray-400 font-bold tabular-nums">${best.time}</span>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+
+        if (modesHTML === "") {
+            const noRecordText = lang === 'ko' ? '기록 없음' : 'No records yet';
+            modesHTML = `<div class="text-[10px] text-gray-300 italic px-2">${noRecordText}</div>`;
+        }
 
         const card = document.createElement('div');
-        // 요청하신 p-3 콤팩트 스타일 클래스
-        card.className = "flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm transition-all duration-500 hover:shadow-md";
+        card.className = "bg-white rounded-2xl border border-gray-100 shadow-sm transition-all hover:shadow-md overflow-hidden";
 
-        // 요청하신 카드 내부 구조 (PTS/Time 포맷 유지)
+        // 캐릭터 이미지 구도 보정 로직
+        let objPos = "center 10%";
+        let transform = "scale(1.3)";
+        if (englishName === "Yoiko") { objPos = "center 10%"; transform = "scale(1.8) translateX(-5px)"; }
+        if (englishName === "Alessia") objPos = "center 40%";
+        if (englishName === "Vesper") { objPos = "center 30%"; transform = "scale(1.7)"; }
+        if (englishName === "Jadetalon") { objPos = "center -20%"; transform = "scale(2) translateX(10px)"; }
+        if (englishName === "Peddler") { objPos = "center 10%"; transform = "scale(1) translateX(5px)"; }
+        if (englishName === "Huo Yufeng") { objPos = "center 10%"; transform = "scale(1.5) translateX(5px)"; }
+        if (englishName === "Hua Ling") { objPos = "center 10%"; transform = "scale(1.5) translateX(2px) translateY(5px)"; }
+        if (englishName === "Synthia") { objPos = "center 20%"; transform = "scale(1.5) translateX(-15px)"; }
+        if (englishName === "Anibella") { objPos = "center 10%"; transform = "scale(1.5)"; }
+
         card.innerHTML = `
-            <div class="flex items-center gap-3">
-                <span class="font-bold ${rank <= 3 ? 'text-orange-500' : 'text-gray-400'} w-4 text-center italic text-xs">${rank}</span>
-                <div class="w-12 h-5 md:w-16 md:h-7 rounded bg-gray-100 border border-gray-100 overflow-hidden flex-shrink-0 relative">
-                    <img src="${imgPath}"  style="object-position:50%" onerror="this.src='https://via.placeholder.com/48x20?text=Hero'" 
-                         class="w-full h-full object-cover grayscale-[30%]" style="object-position: center 10%; transform: scale(1.3);">
-                    <span class="absolute right-0 bottom-0 bg-orange-600/80 text-[6px] md:text-[8px] text-white px-1 font-bold">
-                        SK
-                    </span>
+            <div class="flex items-center gap-3 p-3 border-b border-gray-50">
+                <div class="w-10 h-10 rounded-lg bg-gray-50 border border-gray-100 overflow-hidden relative flex-shrink-0">
+                    <img src="${imgPath}" onerror="this.src='https://via.placeholder.com/40x40?text=Hero'" 
+                         class="w-full h-full object-cover" style="object-position: ${objPos}; transform: ${transform};">
                 </div>
                 <div class="flex flex-col">
-                    <div class="flex items-center gap-1.5">
-                        <img src="${flagUrl}" class="w-4 h-3 object-cover rounded-[1px] shadow-sm opacity-80">
-                        <span class="font-bold text-sm text-gray-700 cursor-pointer hover:text-black transition-colors" onclick="handleDirectJump('${item.userId}')">${item.userId}</span>
-                    </div>
-                    <span class="text-[8px] font-medium text-gray-400 uppercase mt-0.5">${displayName}</span>
+                    <span class="font-black text-xs text-gray-900 uppercase tracking-tight leading-none mb-1">${displayName}</span>
+                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">${totalPlays} ${playsLabel}</span>
                 </div>
             </div>
-            <div class="flex flex-col items-end gap-0.5">
-                <span class="text-[8px] font-medium text-gray-400 uppercase tracking-tighter">
-                    ${Number(item.totalScore).toLocaleString()} PTS
-                </span>
-                <span class="text-[11px] font-bold text-gray-900 tabular-nums tracking-tight">
-                    ${item.time}
-                </span>
+            <div class="scroll-container p-2 overflow-x-auto flex gap-2 no-scrollbar scroll-smooth">
+                ${modesHTML}
             </div>
         `;
+
         container.appendChild(card);
+
+        // PC 드래그 스크롤 바인딩
+        const scrollContainer = card.querySelector('.scroll-container');
+        if (scrollContainer) initDragScroll(scrollContainer);
     });
 }
 let currentCropCallback = null;

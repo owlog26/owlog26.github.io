@@ -64,12 +64,16 @@
     "battlefield": "전장",
     "void": "태초의 공허",
     "tab_sk_ranking": "캐릭터별 랭킹",
+    "character_leaderboard": "캐릭터 순위",
+
     "cancel": "취소",
     "void_record": "심연 기록",
     "sk_record": "SK 기록",
     "sk_scanner_title": "SK 데이터 스캐너"
   },
   "en": {
+    
+    "character_leaderboard": "Character Leaderboard",
     "void_record": "Void Record",
     "sk_record": "SK Record",
     "sk_scanner_title": "SK DATA SCANNER",
