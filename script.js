@@ -1839,7 +1839,6 @@ async function selectMode(game, mode) {
             }
         }
     }
-
     if (typeof updateContent === 'function') updateContent();
 }
 /**
