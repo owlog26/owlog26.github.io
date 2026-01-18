@@ -2470,7 +2470,7 @@ function renderSKRankingSlide() {
     container.className = "mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 md:col-span-2";
 
     const titleText = translations[lang]['character_leaderboard'] || "Character Leaderboard";
-    const subTitleText = translations[lang]['global_best'] || "Global Best";
+    const subTitleText = translations[lang]['global_best'] || "";
     const playsLabel = lang === 'ko' ? '회 플레이' : 'PLAYS'; // 언어별 라벨 설정
 
     // 1. 데이터가 있는 캐릭터를 상단으로 정렬
