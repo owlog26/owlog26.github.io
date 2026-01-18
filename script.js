@@ -616,7 +616,7 @@ function renderRankingSlide() {
     container.innerHTML = '';
     container.className = "mt-4 space-y-4 md:col-span-2 relative";
 
-    const titleText = translations[lang]['ranking_gp_title'] || (lang === 'ko' ? "최고의 플레이어 (종합 랭킹)" : "Best Players (Grand Prix)");
+    const titleText = translations[lang]['ranking_gp_title'] || (lang === 'ko' ? "종합 랭킹" : "Grand Slam");
     const guideBtnText = translations[lang]['ranking_guide'] || (lang === 'ko' ? "산정 기준" : "Guide");
 
     // 모달 업데이트 (가이드 내용 반영 + 경고 문구 추가)
