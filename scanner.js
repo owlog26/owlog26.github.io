@@ -155,14 +155,35 @@ async function runMainScan(img) {
         res.stage = extractLastNumber(rawStage, "1");
         res.level = extractLastNumber(rawLevel, "0");
 
+        // [수정됨] 전장 모드 보정 로직
+        // 1. 결과가 '3'인 경우 -> 9로 변경
+        // 2. 인식된 원본 텍스트에 '대'가 포함된 경우 -> 9로 변경
+        if (typeof currentEntry !== 'undefined' && currentEntry.mode === 'battlefield') {
+            if (res.stage === '3' || rawStage.includes('대')) {
+                res.stage = '9';
+            }
+        }
+
         const tM = rawTime.match(/\d{1,2}[:;.\s]\d{2}/);
         if (tM) res.time = tM[0].replace(/[;.\s]/g, ':').padStart(5, '0');
 
         const totalNums = rawTotal.match(/\d+/g);
-        if (totalNums) res.total = parseInt(totalNums.join('')).toLocaleString();
+        if (totalNums) {
+            let cleanTotal = totalNums.join('');
+            
+            // [수정됨] 토탈 스코어 자릿수 제한
+            // 숫자가 6자리를 초과하면 뒤에서 6자리만 남김 (예: 1900000 -> 900000)
+            if (cleanTotal.length > 6) {
+                cleanTotal = cleanTotal.slice(-6);
+            }
+            
+            res.total = parseInt(cleanTotal).toLocaleString();
+        } else {
+            res.total = "0";
+        }
 
         if (debugText) {
-            debugText.innerText = `[RAW DATA]\nTime: ${rawTime}\nStage: ${rawStage}\nLevel: ${rawLevel}\nTotal: ${rawTotal}`;
+            debugText.innerText = `[RAW DATA]\nTime: ${rawTime}\nStage: ${rawStage} -> ${res.stage}\nLevel: ${rawLevel}\nTotal: ${rawTotal} -> ${res.total}`;
         }
 
         // 전역 변수 lastScannedData에 저장 (script.js 등에서 접근)
