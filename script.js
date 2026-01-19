@@ -1726,13 +1726,7 @@ function renderSearchContent(records) {
 /**
  * 보조 함수: 시간 -> 초 (안전하게 함수 내부에 포함 가능)
  */
-function timeToSeconds(t) {
-    if (!t || typeof t !== 'string') return 0;
-    const p = t.replace(/[^0-9:]/g, '').split(':').map(Number);
-    if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
-    if (p.length === 2) return p[0] * 60 + p[1];
-    return p[0] || 0;
-}
+
 
 /**
  * 보조 함수: 초 -> 시간 (안전하게 함수 내부에 포함 가능)
@@ -1744,8 +1738,31 @@ function secondsToTime(s) {
     return `${m}:${sec < 10 ? '0' : ''}${sec}`;
 }
 
+
+
 /**
- * [script.js] 유저 성장 지표 분석 (최종본)
+ * [보조 함수] 시간 문자열을 소수점 포함 초 단위로 변환
+ */
+function timeToSeconds(t) {
+    if (!t || typeof t !== 'string') return 0;
+    const p = t.replace(/[^0-9:.]/g, '').split(':').map(Number);
+    if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
+    if (p.length === 2) return p[0] * 60 + p[1];
+    return p[0] || 0;
+}
+
+/**
+ * [보조 함수] 초 단위를 M:SS 형식으로 변환 (소수점 버림)
+ */
+function secondsToTimeFormat(s) {
+    if (isNaN(s) || s <= 0) return "0:00";
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+}
+
+/**
+ * 유저 분석 서머리 렌더링 함수
  */
 function renderSummaryStats(container, lang) {
     const sumCont = container || document.getElementById('search-content-summary');
@@ -1763,13 +1780,15 @@ function renderSummaryStats(container, lang) {
     });
 
     const modes = Object.keys(modeGroups).sort((a, b) => (a === 'SK' ? -1 : 1));
+    
+    // 전역 변수 currentSummaryMode 초기화 확인
     if (!window.currentSummaryMode || !modes.includes(window.currentSummaryMode)) {
         window.currentSummaryMode = modes[0];
     }
 
     sumCont.innerHTML = '';
 
-    // 2. 상단 슬림 세그먼트 탭
+    // 2. 상단 슬림 세그먼트 탭 (Indigo 테마)
     const tabWrapper = document.createElement('div');
     tabWrapper.className = "p-1 bg-gray-100 rounded-xl flex gap-1 mb-8 w-full max-w-sm mx-auto";
 
@@ -1794,7 +1813,7 @@ function renderSummaryStats(container, lang) {
     });
     sumCont.appendChild(tabWrapper);
 
-    // 3. 현재 모드의 데이터 분석 및 캐릭터 정규화
+    // 3. 현재 모드의 데이터 분석 및 캐릭터 정규화 (중복 제거)
     const records = modeGroups[window.currentSummaryMode];
     const isSK = window.currentSummaryMode === 'SK';
     
@@ -1803,30 +1822,25 @@ function renderSummaryStats(container, lang) {
     const timeSecs = records.map(r => timeToSeconds(r.time)).filter(t => t > 0);
     const bestTimeSec = Math.min(...timeSecs);
 
-    // [캐릭터 중복 제거 및 정규화]
     const charDatasets = {};
     records.forEach(r => {
         const cache = isSK ? skHeroDataCache : heroDataCache;
         const heroInfo = cache?.characters?.find(c => c.english_name === r.character || c.korean_name === r.character);
         
-        // 한글/영문 상관없이 고유한 ID(english_name)를 키로 사용
+        // 한영 혼용 방지를 위해 ID(english_name)를 키로 사용
         const charId = heroInfo ? heroInfo.english_name : r.character;
         const displayName = heroInfo ? (currentLang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : r.character;
 
         if (!charDatasets[charId]) {
-            charDatasets[charId] = { 
-                displayName: displayName, 
-                data: [],
-                heroInfo: heroInfo 
-            };
+            charDatasets[charId] = { displayName: displayName, data: [] };
         }
         charDatasets[charId].data.push(timeToSeconds(r.time));
     });
 
-    // 한영 라벨 설정
+    // 다국어 라벨 설정
     const labelMaxLevel = currentLang === 'ko' ? '최대 고통 레벨' : 'Max Anguish';
     const labelBest = currentLang === 'ko' ? '최고 기록' : 'Personal Best';
-    const labelTrend = currentLang === 'ko' ? '성장 추이 (느린 시간 > 빠른 시간)' : 'Performance Trend (Slow > Fast)';
+    const labelTrend = currentLang === 'ko' ? '성장 추이' : 'Performance Trend';
     const labelHistory = currentLang === 'ko' ? '분석 히스토리' : 'Analysis History';
 
     const section = document.createElement('div');
@@ -1839,7 +1853,7 @@ function renderSummaryStats(container, lang) {
             </div>
             <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center">
                 <p class="text-[9px] font-black text-gray-400 uppercase mb-1 tracking-widest">${labelBest}</p>
-                <p class="text-xl font-black text-indigo-600">${secondsToTime(bestTimeSec)}</p>
+                <p class="text-xl font-black text-indigo-600">${secondsToTimeFormat(bestTimeSec)}</p>
             </div>
         </div>
 
@@ -1848,7 +1862,7 @@ function renderSummaryStats(container, lang) {
                 <span class="w-1 h-3 bg-indigo-500 rounded-full"></span>
                 <p class="text-[10px] font-bold text-slate-600 uppercase">${labelTrend}</p>
             </div>
-            <div class="h-[200px] w-full relative">
+            <div class="h-[240px] w-full relative">
                 <canvas id="summaryChart"></canvas>
             </div>
         </div>
@@ -1866,7 +1880,7 @@ function renderSummaryStats(container, lang) {
                             <span class="font-bold text-slate-700 italic">${displayName}</span>
                             <div class="flex gap-4 font-black text-slate-900 items-center">
                                 <span class="text-[9px] text-gray-300 font-bold">${isSK ? 'SK' : 'Lv. ' + r.level}</span>
-                                <span class="${timeToSeconds(r.time) === bestTimeSec ? 'text-indigo-600' : 'text-slate-600'}">${r.time}</span>
+                                <span class="${timeToSeconds(r.time) === bestTimeSec ? 'text-indigo-600 font-black' : 'text-slate-600'}">${r.time}</span>
                             </div>
                         </div>
                     `;
@@ -1876,7 +1890,7 @@ function renderSummaryStats(container, lang) {
     `;
     sumCont.appendChild(section);
 
-    // 4. 차트 렌더링 (캐릭터별 데이터셋 구성)
+    // 4. 캐릭터별 멀티 라인 차트 렌더링
     if (typeof Chart !== 'undefined') {
         setTimeout(() => {
             const ctx = document.getElementById('summaryChart').getContext('2d');
@@ -1884,7 +1898,7 @@ function renderSummaryStats(container, lang) {
             
             const datasets = Object.keys(charDatasets).map((charId, idx) => {
                 const charInfo = charDatasets[charId];
-                // [정렬] 데이터를 느린 시간 순서대로 정렬 (내림차순)
+                // 느린 시간 -> 빠른 시간 순으로 정렬 (성장형 우상향 그래프)
                 const sortedData = [...charInfo.data].sort((a, b) => b - a);
 
                 return {
@@ -1892,9 +1906,9 @@ function renderSummaryStats(container, lang) {
                     data: sortedData,
                     borderColor: colors[idx % colors.length],
                     backgroundColor: 'transparent',
-                    borderWidth: 2,
+                    borderWidth: 2.5,
                     tension: 0.4,
-                    pointRadius: 2.5,
+                    pointRadius: 3,
                     pointBackgroundColor: colors[idx % colors.length]
                 };
             });
@@ -1912,18 +1926,22 @@ function renderSummaryStats(container, lang) {
                         legend: { 
                             display: true, 
                             position: 'bottom',
-                            labels: { boxWidth: 8, font: { size: 9, weight: 'bold' }, padding: 15 }
+                            labels: { boxWidth: 8, font: { size: 9, weight: 'bold' } }
                         }
                     },
                     scales: {
                         x: { display: false },
                         y: { 
-                            reverse: true, // 낮은 시간이 위로 (기록 향상 시 우상향)
+                            reverse: true, // 빠른 시간이 상단 (성장 곡선)
                             grid: { color: '#f8fafc', drawBorder: false },
                             ticks: { 
-                                font: { size: 8, weight: '600' }, 
-                                color: '#94a3b8', 
-                                callback: (v) => secondsToTime(v) 
+                                font: { size: 9, weight: '700' }, 
+                                color: '#94a3b8',
+                                stepSize: 1,      // 1초 단위 강제 (중복 방지)
+                                maxTicksLimit: 6, // 깔끔한 간격 유지
+                                callback: function(value) {
+                                    if (value % 1 === 0) return secondsToTimeFormat(value);
+                                }
                             }
                         }
                     }
