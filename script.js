@@ -9,7 +9,7 @@ let translations = {};// script.js 최상단에 추가
 let currentSummaryMode = null;
 // ISO 3166-1 alpha-2 전체 리스트 (US, KR 우선 배치 후 알파벳순)
 const isoCodes = [
-    "US","KR", "CN", "VN", "JP",// 우선 순위
+    "US", "KR", "CN", "VN", "JP",// 우선 순위
     "AF", "AX", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR", "AM", "AW", "AU", "AT", "AZ",
     "BS", "BH", "BD", "BB", "BY", "BE", "BZ", "BJ", "BM", "BT", "BO", "BA", "BW", "BV", "BR", "IO",
     "BN", "BG", "BF", "BI", "KH", "CM", "CA", "CV", "KY", "CF", "TD", "CL", "CX", "CC", "CO",
@@ -1488,7 +1488,7 @@ function renderSearchSummary() {
     Object.keys(modeGroups).forEach(modeKey => {
         const records = modeGroups[modeKey];
         const isSK = modeKey === 'SK';
-        
+
         // 데이터 분석: 최고 단계 및 최단 시간 추출
         const maxStage = Math.max(...records.map(r => parseInt(r.stage) || 1));
         const timeData = records.map(r => timeToSeconds(r.time)).filter(t => t > 0);
@@ -1498,11 +1498,11 @@ function renderSearchSummary() {
         // UI 섹션 생성
         const section = document.createElement('div');
         section.className = "bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6 animate-fade-in";
-        
+
         let modeName = modeKey;
         if (modeKey === 'CLASSIC') modeName = translations[lang]['fissureSub'] || 'Classic';
         else if (modeKey === 'RIFT') modeName = translations[lang]['riftSub'] || 'Rift';
-        
+
         section.innerHTML = `
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-2">
@@ -1542,7 +1542,7 @@ function renderSearchSummary() {
                 </div>
             </div>
         `;
-        
+
         container.appendChild(section);
 
         // 3. 차트 렌더링 (Chart.js)
@@ -1571,7 +1571,7 @@ function renderSearchSummary() {
                     plugins: { legend: { display: false } },
                     scales: {
                         x: { display: false },
-                        y: { 
+                        y: {
                             beginAtZero: false,
                             grid: { color: '#f3f4f6' },
                             ticks: {
@@ -1767,7 +1767,7 @@ function secondsToTimeFormat(s) {
 function renderSummaryStats(container, lang) {
     const sumCont = container || document.getElementById('search-content-summary');
     if (!sumCont || !searchUserRecordsRef || searchUserRecordsRef.length === 0) return;
-    
+
     const currentLang = lang || localStorage.getItem('owlog_lang') || 'en';
     const trans = (typeof translations !== 'undefined' && translations[currentLang]) ? translations[currentLang] : {};
 
@@ -1779,8 +1779,18 @@ function renderSummaryStats(container, lang) {
         modeGroups[mode].push(item);
     });
 
-    const modes = Object.keys(modeGroups).sort((a, b) => (a === 'SK' ? -1 : 1));
-    
+
+    const orderMap = {
+        "CLASSIC": 1,
+        "RIFT": 2,
+        "BATTLEFIELD": 3,
+        "SK": 4
+    };
+
+    // 2. 정의한 순서에 따라 모드를 정렬합니다.
+    const modes = Object.keys(modeGroups).sort((a, b) => {
+        return (orderMap[a] || 99) - (orderMap[b] || 99);
+    });
     // 전역 변수 currentSummaryMode 초기화 확인
     if (!window.currentSummaryMode || !modes.includes(window.currentSummaryMode)) {
         window.currentSummaryMode = modes[0];
@@ -1801,9 +1811,8 @@ function renderSummaryStats(container, lang) {
 
         const isActive = window.currentSummaryMode === modeKey;
         const btn = document.createElement('button');
-        btn.className = `flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-all ${
-            isActive ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-        }`;
+        btn.className = `flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-all ${isActive ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`;
         btn.innerText = modeDisplayName;
         btn.onclick = () => {
             window.currentSummaryMode = modeKey;
@@ -1816,7 +1825,7 @@ function renderSummaryStats(container, lang) {
     // 3. 현재 모드의 데이터 분석 및 캐릭터 정규화 (중복 제거)
     const records = modeGroups[window.currentSummaryMode];
     const isSK = window.currentSummaryMode === 'SK';
-    
+
     const levels = records.map(r => parseInt(r.level) || 0);
     const maxLevel = Math.max(...levels);
     const timeSecs = records.map(r => timeToSeconds(r.time)).filter(t => t > 0);
@@ -1826,7 +1835,7 @@ function renderSummaryStats(container, lang) {
     records.forEach(r => {
         const cache = isSK ? skHeroDataCache : heroDataCache;
         const heroInfo = cache?.characters?.find(c => c.english_name === r.character || c.korean_name === r.character);
-        
+
         // 한영 혼용 방지를 위해 ID(english_name)를 키로 사용
         const charId = heroInfo ? heroInfo.english_name : r.character;
         const displayName = heroInfo ? (currentLang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : r.character;
@@ -1870,12 +1879,12 @@ function renderSummaryStats(container, lang) {
         <div class="space-y-2">
             <p class="text-[9px] font-black text-gray-400 uppercase px-1 tracking-wider">${labelHistory}</p>
             <div class="max-h-64 overflow-y-auto pr-1 space-y-1.5 custom-scrollbar">
-                ${records.sort((a,b) => timeToSeconds(b.time) - timeToSeconds(a.time)).map(r => {
-                    const cache = isSK ? skHeroDataCache : heroDataCache;
-                    const heroInfo = cache?.characters?.find(c => c.english_name === r.character || c.korean_name === r.character);
-                    const displayName = heroInfo ? (currentLang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : r.character;
+                ${records.sort((a, b) => timeToSeconds(b.time) - timeToSeconds(a.time)).map(r => {
+        const cache = isSK ? skHeroDataCache : heroDataCache;
+        const heroInfo = cache?.characters?.find(c => c.english_name === r.character || c.korean_name === r.character);
+        const displayName = heroInfo ? (currentLang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : r.character;
 
-                    return `
+        return `
                         <div class="flex justify-between items-center text-[11px] p-3 bg-white rounded-xl border border-gray-50 shadow-sm transition-all hover:border-indigo-100">
                             <span class="font-bold text-slate-700 italic">${displayName}</span>
                             <div class="flex gap-4 font-black text-slate-900 items-center">
@@ -1884,7 +1893,7 @@ function renderSummaryStats(container, lang) {
                             </div>
                         </div>
                     `;
-                }).join('')}
+    }).join('')}
             </div>
         </div>
     `;
@@ -1895,7 +1904,7 @@ function renderSummaryStats(container, lang) {
         setTimeout(() => {
             const ctx = document.getElementById('summaryChart').getContext('2d');
             const colors = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-            
+
             const datasets = Object.keys(charDatasets).map((charId, idx) => {
                 const charInfo = charDatasets[charId];
                 // 느린 시간 -> 빠른 시간 순으로 정렬 (성장형 우상향 그래프)
@@ -1916,30 +1925,30 @@ function renderSummaryStats(container, lang) {
             new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: Array.from({length: Math.max(...Object.values(charDatasets).map(d => d.data.length))}, (_, i) => i + 1),
+                    labels: Array.from({ length: Math.max(...Object.values(charDatasets).map(d => d.data.length)) }, (_, i) => i + 1),
                     datasets: datasets
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { 
-                            display: true, 
+                    plugins: {
+                        legend: {
+                            display: true,
                             position: 'bottom',
                             labels: { boxWidth: 8, font: { size: 9, weight: 'bold' } }
                         }
                     },
                     scales: {
                         x: { display: false },
-                        y: { 
+                        y: {
                             reverse: true, // 빠른 시간이 상단 (성장 곡선)
                             grid: { color: '#f8fafc', drawBorder: false },
-                            ticks: { 
-                                font: { size: 9, weight: '700' }, 
+                            ticks: {
+                                font: { size: 9, weight: '700' },
                                 color: '#94a3b8',
                                 stepSize: 1,      // 1초 단위 강제 (중복 방지)
                                 maxTicksLimit: 6, // 깔끔한 간격 유지
-                                callback: function(value) {
+                                callback: function (value) {
                                     if (value % 1 === 0) return secondsToTimeFormat(value);
                                 }
                             }
@@ -1959,7 +1968,7 @@ function handleDirectJump(userId, isPopState = false) {
     }
 
     switchTab('search');
-    
+
     document.getElementById('search-loading-view').classList.remove('hidden');
     document.getElementById('search-results-view').classList.add('hidden');
 
@@ -1977,7 +1986,7 @@ function goBackToHome(isPopState = false) {
     if (!isPopState) {
         window.history.pushState({}, '', window.location.pathname);
     }
-    
+
     switchTab('home');
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1985,7 +1994,7 @@ function goBackToHome(isPopState = false) {
 window.addEventListener('popstate', (event) => {
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('id');
-    
+
     if (userId) {
         // 주소에 id가 있으면 해당 유저 페이지로 (isPopState를 true로 전달)
         handleDirectJump(userId, true);
@@ -2346,7 +2355,7 @@ async function saveRecord(event) {
             totalScore: totalScore,
             stage: mode === 'fissure' ? scannedStage : 1,
             mode: mode === 'fissure' ? 'Classic' : (mode === 'rift' ? 'Rift' : 'Battlefield'),
-            
+
             // ★ 이미지 데이터 추가 부분
             image: lastScannedImageData, // Base64 문자열
             filename: `${nickname}_${mode}_${Date.now()}.jpg` // 파일명 생성
@@ -2359,7 +2368,7 @@ async function saveRecord(event) {
             // Apps Script 배포 시 "모든 사용자" 권한 설정이 필수입니다.
             // 기존 코드처럼 no-cors를 쓰면 업로드 성공 여부를 정확히 알 수 없습니다.
             // 여기서는 기존 방식을 유지하되, 내용만 보강합니다.
-            mode: 'no-cors', 
+            mode: 'no-cors',
             cache: 'no-cache',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -2568,9 +2577,9 @@ function openCropModal(imageSrc, callback) {
         }
     }
 
-    currentCropCallback = callback; 
+    currentCropCallback = callback;
     image.src = imageSrc;
-    
+
     // 모달 표시
     modal.classList.remove('hidden');
 
