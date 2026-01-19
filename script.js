@@ -5,7 +5,8 @@
 let skHeroDataCache = null; // [추가] SK용 전역 변수
 let lastScannedImageData = null; // [추가] 크롭된 이미지 데이터(Base64) 저장용
 let currentModeTab = "Classic"; // 기본값 설정
-let translations = {};
+let translations = {};// script.js 최상단에 추가
+let currentSummaryMode = null;
 // ISO 3166-1 alpha-2 전체 리스트 (US, KR 우선 배치 후 알파벳순)
 const isoCodes = [
     "KR", "US", "CN", "VN", "JP",// 우선 순위
@@ -1448,114 +1449,140 @@ function renderSearchRecords() {
 /**
  * [script.js] 검색된 유저의 통계를 모드별로 그룹화하여 렌더링
  */
+/**
+ * 시간을 초 단위로 변환 (정렬 및 계산용)
+ */
+function timeToSeconds(timeStr) {
+    if (!timeStr) return 0;
+    const parts = timeStr.replace(/[^0-9:]/g, '').split(':').map(Number);
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    return parts[0] || 0;
+}
+
+/**
+ * 초 단위를 다시 시간 문자열로 변환
+ */
+function secondsToTime(totalSeconds) {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
 function renderSearchSummary() {
     const container = document.getElementById('search-content-summary');
     const lang = localStorage.getItem('owlog_lang') || 'en';
-    if (!container) return;
+    if (!container || !currentUserRecords.length) return;
 
     container.innerHTML = '';
 
-    // 1. 데이터를 모드별 -> 캐릭터별로 그룹화
+    // 1. 데이터를 모드별로 그룹화 및 시간순 정렬
     const modeGroups = {};
-
     currentUserRecords.forEach(item => {
         const mode = item.mode ? item.mode.trim().toUpperCase() : 'CLASSIC';
-
-        if (!modeGroups[mode]) {
-            modeGroups[mode] = {};
-        }
-
-        if (!modeGroups[mode][item.character]) {
-            modeGroups[mode][item.character] = {
-                count: 0,
-                totalScore: 0,
-                maxScore: 0
-            };
-        }
-
-        const score = Number(item.totalScore);
-        const stats = modeGroups[mode][item.character];
-        stats.count++;
-        stats.totalScore += score;
-        if (score > stats.maxScore) stats.maxScore = score;
+        if (!modeGroups[mode]) modeGroups[mode] = [];
+        modeGroups[mode].push(item);
     });
 
-    // 2. 모드별로 섹션 생성 및 렌더링
-    // 표시 순서 조정 (원하는 순서가 있다면 배열로 정의 가능)
-    const sortedModes = Object.keys(modeGroups).sort((a, b) => (a === 'SK' ? -1 : 1));
-
-    sortedModes.forEach(modeKey => {
-        const characters = modeGroups[modeKey];
+    // 2. 모드별 분석 및 카드 생성
+    Object.keys(modeGroups).forEach(modeKey => {
+        const records = modeGroups[modeKey];
         const isSK = modeKey === 'SK';
+        
+        // 데이터 분석: 최고 단계 및 최단 시간 추출
+        const maxStage = Math.max(...records.map(r => parseInt(r.stage) || 1));
+        const timeData = records.map(r => timeToSeconds(r.time)).filter(t => t > 0);
+        const bestTime = Math.min(...timeData);
+        const avgTime = Math.round(timeData.reduce((a, b) => a + b, 0) / timeData.length);
 
-        // 모드 섹션 헤더 추가
-        const sectionHeader = document.createElement('div');
-        sectionHeader.className = "flex items-center gap-2 px-2 mt-6 mb-3";
+        // UI 섹션 생성
+        const section = document.createElement('div');
+        section.className = "bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6 animate-fade-in";
+        
+        let modeName = modeKey;
+        if (modeKey === 'CLASSIC') modeName = translations[lang]['fissureSub'] || 'Classic';
+        else if (modeKey === 'RIFT') modeName = translations[lang]['riftSub'] || 'Rift';
+        
+        section.innerHTML = `
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="w-1.5 h-4 rounded-full ${isSK ? 'bg-orange-500' : 'bg-indigo-600'}"></span>
+                    <h3 class="font-black text-gray-900 uppercase tracking-tight">${modeName} Analysis</h3>
+                </div>
+                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">${records.length} Records</div>
+            </div>
 
-        // 모드별 표시 명칭 설정
-        let modeDisplayName = modeKey;
-        if (modeKey === 'SK') modeDisplayName = 'Soul Knight';
-        else if (modeKey === 'CLASSIC') modeDisplayName = translations[lang]['fissureSub'] || 'Spatial Interstice';
-        else if (modeKey === 'RIFT') modeDisplayName = translations[lang]['riftSub'] || 'The Rift';
-        else if (modeKey === 'BATTLEFIELD') modeDisplayName = 'Battlefield';
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <p class="text-[9px] font-bold text-gray-400 uppercase mb-1">Max Difficulty/Stage</p>
+                    <p class="text-xl font-black text-gray-900">${isSK ? 'Soul Knight' : 'STG ' + maxStage}</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <p class="text-[9px] font-bold text-gray-400 uppercase mb-1">Personal Best Speed</p>
+                    <p class="text-xl font-black text-blue-600">${secondsToTime(bestTime)}</p>
+                </div>
+            </div>
 
-        sectionHeader.innerHTML = `
-            <span class="w-1 h-4 rounded-sm ${isSK ? 'bg-orange-500' : 'bg-gray-700'}"></span>
-            <h4 class="font-bold text-sm text-gray-800 uppercase tracking-tight">${modeDisplayName}</h4>
+            <div class="mb-6 relative h-[200px] w-full">
+                <canvas id="chart-${modeKey}"></canvas>
+            </div>
+
+            <div class="space-y-2">
+                <p class="text-[10px] font-bold text-gray-400 uppercase px-1">Performance History</p>
+                <div class="max-h-32 overflow-y-auto pr-1 space-y-1 custom-scrollbar">
+                    ${records.map(r => `
+                        <div class="flex justify-between items-center text-[11px] p-2 bg-gray-50 rounded-lg border border-gray-100">
+                            <span class="font-bold text-gray-500 italic">${r.character}</span>
+                            <div class="flex gap-3 font-black text-gray-800">
+                                <span>${isSK ? '' : 'STG ' + r.stage}</span>
+                                <span class="${timeToSeconds(r.time) === bestTime ? 'text-blue-500' : ''}">${r.time}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
         `;
-        container.appendChild(sectionHeader);
+        
+        container.appendChild(section);
 
-        // 해당 모드의 캐릭터 카드들 생성
-        Object.keys(characters).forEach(charName => {
-            const s = characters[charName];
-            const avgScore = Math.round(s.totalScore / s.count);
-
-            // 이미지 정보 및 폴더 설정
-            let heroInfo, folder;
-            if (isSK) {
-                heroInfo = (skHeroDataCache && skHeroDataCache.characters)
-                    ? skHeroDataCache.characters.find(c => c.english_name === charName || c.korean_name === charName)
-                    : null;
-                folder = 'sk_heroes';
-            } else {
-                heroInfo = (heroDataCache && heroDataCache.characters)
-                    ? heroDataCache.characters.find(c => c.english_name === charName || c.korean_name === charName)
-                    : null;
-                folder = 'heroes';
-            }
-
-            const englishName = heroInfo ? heroInfo.english_name : charName;
-            const fileName = englishName.replace(/\s+/g, '_');
-            const displayName = heroInfo ? (lang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : charName;
-
-            const row = document.createElement('div');
-            row.className = "bg-white p-5 rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm mb-3 last:mb-0";
-            row.innerHTML = `
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden relative">
-                        <img src="./${folder}/${fileName}.webp" 
-                             onerror="this.src='https://via.placeholder.com/48x48?text=Hero'" 
-                             class="w-full h-full object-cover">
-                        ${isSK ? '<span class="absolute bottom-0 right-0 bg-orange-600 text-[6px] text-white px-1 font-bold">SK</span>' : ''}
-                    </div>
-                    <div>
-                        <p class="font-black text-sm text-gray-800">${displayName}</p>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase">${s.count} GAMES PLAYED</p>
-                    </div>
-                </div>
-                <div class="flex gap-6 text-right">
-                    <div>
-                        <p class="text-[9px] font-bold text-gray-400 uppercase">Best</p>
-                        <p class="text-xs font-black ${isSK ? 'text-orange-500' : 'text-blue-600'}">${s.maxScore.toLocaleString()}</p>
-                    </div>
-                    <div>
-                        <p class="text-[9px] font-bold text-gray-400 uppercase">Avg</p>
-                        <p class="text-xs font-black text-gray-800">${avgScore.toLocaleString()}</p>
-                    </div>
-                </div>
-            `;
-            container.appendChild(row);
-        });
+        // 3. 차트 렌더링 (Chart.js)
+        setTimeout(() => {
+            const ctx = document.getElementById(`chart-${modeKey}`).getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: records.map((_, i) => `${i + 1}`),
+                    datasets: [{
+                        label: 'Clear Time (Seconds)',
+                        data: records.map(r => timeToSeconds(r.time)),
+                        borderColor: isSK ? '#f97316' : '#4f46e5',
+                        backgroundColor: isSK ? 'rgba(249, 115, 22, 0.1)' : 'rgba(79, 70, 229, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { 
+                            beginAtZero: false,
+                            grid: { color: '#f3f4f6' },
+                            ticks: {
+                                font: { size: 10, weight: 'bold' },
+                                callback: (value) => secondsToTime(value)
+                            }
+                        }
+                    }
+                }
+            });
+        }, 100);
     });
 }
 /**
@@ -1647,7 +1674,7 @@ function performUserSearch(query) {
              class="w-full h-full object-cover" style="transform: ${transform}; object-position: ${objPos};">
     `;
 
-    switchSearchTab('records');
+    switchSearchTab('summary');
 }
 let searchCurrentPage = 1;
 const searchItemsPerPage = 10;
@@ -1697,130 +1724,258 @@ function renderSearchContent(records) {
     searchUserRecordsRef = records;
 }
 /**
- * [script.js] 검색 유저의 통계 요약을 모드별로 그룹화하여 렌더링
+ * 보조 함수: 시간 -> 초 (안전하게 함수 내부에 포함 가능)
  */
-function renderSummaryStats(container, lang) {
-    if (!container || !searchUserRecordsRef) return;
-    const currentLang = lang || localStorage.getItem('owlog_lang') || 'en';
-
-    // 1. 데이터를 모드별 -> 캐릭터별로 그룹화
-    const modeGroups = {};
-
-    searchUserRecordsRef.forEach(item => {
-        const mode = item.mode ? item.mode.trim().toUpperCase() : 'CLASSIC';
-        const isSK = mode === 'SK';
-
-        // 해당 모드에 맞는 히어로 캐시 선택
-        const cache = isSK ? skHeroDataCache : heroDataCache;
-        const heroInfo = cache && cache.characters ? cache.characters.find(c =>
-            c.english_name === item.character || c.korean_name === item.character
-        ) : null;
-
-        const charKey = heroInfo ? heroInfo.english_name : item.character;
-
-        if (!modeGroups[mode]) {
-            modeGroups[mode] = {};
-        }
-
-        if (!modeGroups[mode][charKey]) {
-            modeGroups[mode][charKey] = { count: 0, max: 0, total: 0, info: heroInfo };
-        }
-
-        const score = Number(item.totalScore);
-        const s = modeGroups[mode][charKey];
-        s.count++;
-        s.total += score;
-        if (score > s.max) s.max = score;
-    });
-
-    container.innerHTML = '';
-
-    const labelGames = currentLang === 'ko' ? '판 플레이' : 'GAMES';
-    const labelBest = translations[currentLang]['label_best'] || 'Best';
-    const labelAvg = translations[currentLang]['label_avg'] || 'Average';
-
-    // 2. 모드별로 섹션 정렬 및 출력 (SK 우선순위)
-    const sortedModes = Object.keys(modeGroups).sort((a, b) => (a === 'SK' ? -1 : 1));
-
-    sortedModes.forEach(modeKey => {
-        const isSK = modeKey === 'SK';
-        const characters = modeGroups[modeKey];
-
-        // 모드 섹션 헤더 추가
-        const sectionHeader = document.createElement('div');
-        sectionHeader.className = "flex items-center gap-2 px-2 mt-6 mb-3";
-
-        let modeDisplayName = modeKey;
-        if (modeKey === 'SK') modeDisplayName = 'Soul Knight';
-        else if (modeKey === 'CLASSIC') modeDisplayName = translations[currentLang]['fissureSub'] || 'Spatial Interstice';
-        else if (modeKey === 'RIFT') modeDisplayName = translations[currentLang]['riftSub'] || 'The Rift';
-        else if (modeKey === 'BATTLEFIELD') modeDisplayName = 'Battlefield';
-
-        sectionHeader.innerHTML = `
-            <span class="w-1 h-4 rounded-sm ${isSK ? 'bg-orange-500' : 'bg-gray-700'}"></span>
-            <h4 class="font-bold text-sm text-gray-800 uppercase tracking-tight">${modeDisplayName}</h4>
-        `;
-        container.appendChild(sectionHeader);
-
-        // 해당 모드의 캐릭터 카드들 생성
-        Object.keys(characters).forEach(charKey => {
-            const s = characters[charKey];
-            const heroInfo = s.info;
-            const displayName = heroInfo ? (currentLang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : charKey;
-            const fileName = charKey.replace(/\s+/g, '_');
-            const folder = isSK ? 'sk_heroes' : 'heroes';
-            const bestScoreColor = isSK ? 'text-orange-500' : 'text-blue-500';
-
-            const row = document.createElement('div');
-            row.className = "bg-gray-50 p-5 rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm mb-3";
-            row.innerHTML = `
-                <div class="flex items-center gap-4">
-                    <div class="w-14 h-14 rounded-xl bg-white border border-gray-100 overflow-hidden flex-shrink-0 relative">
-                        <img src="./${folder}/${fileName}.webp" 
-                             onerror="this.src='https://via.placeholder.com/56x56?text=Hero'"
-                             class="w-full h-full object-cover">
-                        ${isSK ? '<span class="absolute bottom-0 right-0 bg-orange-600 text-[6px] text-white px-1 font-bold">SK</span>' : ''}
-                    </div>
-                    <div>
-                        <p class="font-black text-sm text-gray-800">${displayName}</p>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">${s.count} ${labelGames}</p>
-                    </div>
-                </div>
-                <div class="flex gap-6 md:gap-10 text-right">
-                    <div>
-                        <p class="text-[9px] font-bold text-gray-400 uppercase mb-0.5">${labelBest}</p>
-                        <p class="text-sm font-black ${bestScoreColor}">${s.max.toLocaleString()}</p>
-                    </div>
-                    <div>
-                        <p class="text-[9px] font-bold text-gray-400 uppercase mb-0.5">${labelAvg}</p>
-                        <p class="text-sm font-black text-gray-900">${Math.round(s.total / s.count).toLocaleString()}</p>
-                    </div>
-                </div>
-            `;
-            container.appendChild(row);
-        });
-    });
+function timeToSeconds(t) {
+    if (!t || typeof t !== 'string') return 0;
+    const p = t.replace(/[^0-9:]/g, '').split(':').map(Number);
+    if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
+    if (p.length === 2) return p[0] * 60 + p[1];
+    return p[0] || 0;
 }
 
 /**
- * 1. 특정 유저 페이지로 즉시 점프 (로딩 뷰 노출)
+ * 보조 함수: 초 -> 시간 (안전하게 함수 내부에 포함 가능)
  */
-function handleDirectJump(userId) {
-    // 즉시 검색 섹션 활성화 (이때 index.html에 설정된 loading-view가 기본으로 보임)
-    switchTab('search');
+function secondsToTime(s) {
+    if (isNaN(s) || s <= 0) return "0:00";
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+}
 
-    // 로딩 상태 강제 리셋 (결과 뷰 숨기고 로딩 뷰 보여주기)
+/**
+ * [script.js] 유저 성장 지표 분석 (최종본)
+ */
+function renderSummaryStats(container, lang) {
+    const sumCont = container || document.getElementById('search-content-summary');
+    if (!sumCont || !searchUserRecordsRef || searchUserRecordsRef.length === 0) return;
+    
+    const currentLang = lang || localStorage.getItem('owlog_lang') || 'en';
+    const trans = (typeof translations !== 'undefined' && translations[currentLang]) ? translations[currentLang] : {};
+
+    // 1. 데이터를 모드별로 그룹화
+    const modeGroups = {};
+    searchUserRecordsRef.forEach(item => {
+        const mode = (item.mode || 'Classic').trim().toUpperCase();
+        if (!modeGroups[mode]) modeGroups[mode] = [];
+        modeGroups[mode].push(item);
+    });
+
+    const modes = Object.keys(modeGroups).sort((a, b) => (a === 'SK' ? -1 : 1));
+    if (!window.currentSummaryMode || !modes.includes(window.currentSummaryMode)) {
+        window.currentSummaryMode = modes[0];
+    }
+
+    sumCont.innerHTML = '';
+
+    // 2. 상단 슬림 세그먼트 탭
+    const tabWrapper = document.createElement('div');
+    tabWrapper.className = "p-1 bg-gray-100 rounded-xl flex gap-1 mb-8 w-full max-w-sm mx-auto";
+
+    modes.forEach(modeKey => {
+        let modeDisplayName = modeKey;
+        if (modeKey === 'SK') modeDisplayName = 'Soul Knight';
+        else if (modeKey === 'CLASSIC') modeDisplayName = trans['fissureSub'] || 'Classic';
+        else if (modeKey === 'RIFT') modeDisplayName = trans['riftSub'] || 'Rift';
+        else if (modeKey === 'BATTLEFIELD') modeDisplayName = 'Battlefield';
+
+        const isActive = window.currentSummaryMode === modeKey;
+        const btn = document.createElement('button');
+        btn.className = `flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-all ${
+            isActive ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+        }`;
+        btn.innerText = modeDisplayName;
+        btn.onclick = () => {
+            window.currentSummaryMode = modeKey;
+            renderSummaryStats(sumCont, currentLang);
+        };
+        tabWrapper.appendChild(btn);
+    });
+    sumCont.appendChild(tabWrapper);
+
+    // 3. 현재 모드의 데이터 분석 및 캐릭터 정규화
+    const records = modeGroups[window.currentSummaryMode];
+    const isSK = window.currentSummaryMode === 'SK';
+    
+    const levels = records.map(r => parseInt(r.level) || 0);
+    const maxLevel = Math.max(...levels);
+    const timeSecs = records.map(r => timeToSeconds(r.time)).filter(t => t > 0);
+    const bestTimeSec = Math.min(...timeSecs);
+
+    // [캐릭터 중복 제거 및 정규화]
+    const charDatasets = {};
+    records.forEach(r => {
+        const cache = isSK ? skHeroDataCache : heroDataCache;
+        const heroInfo = cache?.characters?.find(c => c.english_name === r.character || c.korean_name === r.character);
+        
+        // 한글/영문 상관없이 고유한 ID(english_name)를 키로 사용
+        const charId = heroInfo ? heroInfo.english_name : r.character;
+        const displayName = heroInfo ? (currentLang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : r.character;
+
+        if (!charDatasets[charId]) {
+            charDatasets[charId] = { 
+                displayName: displayName, 
+                data: [],
+                heroInfo: heroInfo 
+            };
+        }
+        charDatasets[charId].data.push(timeToSeconds(r.time));
+    });
+
+    // 한영 라벨 설정
+    const labelMaxLevel = currentLang === 'ko' ? '최대 고통 레벨' : 'Max Anguish';
+    const labelBest = currentLang === 'ko' ? '최고 기록' : 'Personal Best';
+    const labelTrend = currentLang === 'ko' ? '성장 추이 (느린 시간 > 빠른 시간)' : 'Performance Trend (Slow > Fast)';
+    const labelHistory = currentLang === 'ko' ? '분석 히스토리' : 'Analysis History';
+
+    const section = document.createElement('div');
+    section.className = "animate-fade-in";
+    section.innerHTML = `
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center">
+                <p class="text-[9px] font-black text-gray-400 uppercase mb-1 tracking-widest">${labelMaxLevel}</p>
+                <p class="text-xl font-black text-slate-900">${isSK ? 'Soul Knight' : 'Lv. ' + maxLevel}</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center">
+                <p class="text-[9px] font-black text-gray-400 uppercase mb-1 tracking-widest">${labelBest}</p>
+                <p class="text-xl font-black text-indigo-600">${secondsToTime(bestTimeSec)}</p>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm mb-8">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="w-1 h-3 bg-indigo-500 rounded-full"></span>
+                <p class="text-[10px] font-bold text-slate-600 uppercase">${labelTrend}</p>
+            </div>
+            <div class="h-[200px] w-full relative">
+                <canvas id="summaryChart"></canvas>
+            </div>
+        </div>
+
+        <div class="space-y-2">
+            <p class="text-[9px] font-black text-gray-400 uppercase px-1 tracking-wider">${labelHistory}</p>
+            <div class="max-h-64 overflow-y-auto pr-1 space-y-1.5 custom-scrollbar">
+                ${records.sort((a,b) => timeToSeconds(b.time) - timeToSeconds(a.time)).map(r => {
+                    const cache = isSK ? skHeroDataCache : heroDataCache;
+                    const heroInfo = cache?.characters?.find(c => c.english_name === r.character || c.korean_name === r.character);
+                    const displayName = heroInfo ? (currentLang === 'ko' ? heroInfo.korean_name : heroInfo.english_name) : r.character;
+
+                    return `
+                        <div class="flex justify-between items-center text-[11px] p-3 bg-white rounded-xl border border-gray-50 shadow-sm transition-all hover:border-indigo-100">
+                            <span class="font-bold text-slate-700 italic">${displayName}</span>
+                            <div class="flex gap-4 font-black text-slate-900 items-center">
+                                <span class="text-[9px] text-gray-300 font-bold">${isSK ? 'SK' : 'Lv. ' + r.level}</span>
+                                <span class="${timeToSeconds(r.time) === bestTimeSec ? 'text-indigo-600' : 'text-slate-600'}">${r.time}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+    sumCont.appendChild(section);
+
+    // 4. 차트 렌더링 (캐릭터별 데이터셋 구성)
+    if (typeof Chart !== 'undefined') {
+        setTimeout(() => {
+            const ctx = document.getElementById('summaryChart').getContext('2d');
+            const colors = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+            
+            const datasets = Object.keys(charDatasets).map((charId, idx) => {
+                const charInfo = charDatasets[charId];
+                // [정렬] 데이터를 느린 시간 순서대로 정렬 (내림차순)
+                const sortedData = [...charInfo.data].sort((a, b) => b - a);
+
+                return {
+                    label: charInfo.displayName,
+                    data: sortedData,
+                    borderColor: colors[idx % colors.length],
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    pointRadius: 2.5,
+                    pointBackgroundColor: colors[idx % colors.length]
+                };
+            });
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: Math.max(...Object.values(charDatasets).map(d => d.data.length))}, (_, i) => i + 1),
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { 
+                            display: true, 
+                            position: 'bottom',
+                            labels: { boxWidth: 8, font: { size: 9, weight: 'bold' }, padding: 15 }
+                        }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { 
+                            reverse: true, // 낮은 시간이 위로 (기록 향상 시 우상향)
+                            grid: { color: '#f8fafc', drawBorder: false },
+                            ticks: { 
+                                font: { size: 8, weight: '600' }, 
+                                color: '#94a3b8', 
+                                callback: (v) => secondsToTime(v) 
+                            }
+                        }
+                    }
+                }
+            });
+        }, 100);
+    }
+}
+// 유저 페이지로 점프 (URL 변경 추가)
+function handleDirectJump(userId, isPopState = false) {
+    // 뒤로가기/앞으로가기로 발생한 호출이 아닐 때만 히스토리에 추가
+    if (!isPopState) {
+        const newUrl = window.location.pathname + `?id=${encodeURIComponent(userId)}`;
+        window.history.pushState({ userId: userId }, '', newUrl);
+    }
+
+    switchTab('search');
+    
     document.getElementById('search-loading-view').classList.remove('hidden');
     document.getElementById('search-results-view').classList.add('hidden');
 
     const syncCheck = setInterval(() => {
         if (typeof rankingDataCache !== 'undefined' && rankingDataCache.length > 0 && typeof heroDataCache !== 'undefined') {
             clearInterval(syncCheck);
-            performUserSearch(userId); // 데이터 준비 완료 시 호출
+            performUserSearch(userId);
         }
     }, 300);
 }
 
+// 홈으로 돌아가기 (URL 복구 추가)
+function goBackToHome(isPopState = false) {
+    // 뒤로가기로 돌아온 것이 아니라 직접 버튼을 눌렀다면 히스토리 추가
+    if (!isPopState) {
+        window.history.pushState({}, '', window.location.pathname);
+    }
+    
+    switchTab('home');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+// 브라우저 뒤로가기/앞으로가기 감지
+window.addEventListener('popstate', (event) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('id');
+    
+    if (userId) {
+        // 주소에 id가 있으면 해당 유저 페이지로 (isPopState를 true로 전달)
+        handleDirectJump(userId, true);
+    } else {
+        // 주소에 id가 없으면 홈으로 (isPopState를 true로 전달)
+        goBackToHome(true);
+    }
+});
 
 /**
  * 검색 결과 페이지 내 버튼 기능 활성화 (새로고침 & 공유)

@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
 
@@ -401,14 +401,17 @@
                 </div>
 
                 <div class="flex border-b border-gray-100 mb-8">
-                    <button onclick="switchSearchTab('records')" id="search-tab-records"
-                        class="flex-1 py-4 text-center text-[13px] md:text-sm tab-active transition-all"
-                        data-i18n="tab_search_records">Records</button>
                     <button onclick="switchSearchTab('summary')" id="search-tab-summary"
-                        class="flex-1 py-4 text-center text-[13px] md:text-sm text-gray-400 font-medium transition-all"
+                        class="flex-1 py-4 text-center text-[13px] md:text-sm tab-active transition-all"
                         data-i18n="tab_search_stats">Stats</button>
+
+                    <button onclick="switchSearchTab('records')" id="search-tab-records"
+                        class="flex-1 py-4 text-center text-[13px] md:text-sm text-gray-400 font-medium transition-all"
+                        data-i18n="tab_search_records">Records</button>
                 </div>
 
+                <div id="search-content-summary" class="hidden space-y-3">
+                </div>
                 <div id="search-records-view">
                     <div id="search-content-records" class="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
                     </div>
@@ -416,8 +419,7 @@
                     </div>
                 </div>
 
-                <div id="search-content-summary" class="hidden space-y-3">
-                </div>
+
             </div>
         </div>
 
@@ -742,13 +744,13 @@
 
             <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white">
                 <div>
-    <h3 id="cropTitle" class="font-black uppercase tracking-tighter text-lg text-slate-900">
-        Crop Image
-    </h3>
-    <p id="cropDesc" class="text-[10px] font-bold text-gray-400 tracking-tight">
-        Select data area
-    </p>
-</div>
+                    <h3 id="cropTitle" class="font-black uppercase tracking-tighter text-lg text-slate-900">
+                        Crop Image
+                    </h3>
+                    <p id="cropDesc" class="text-[10px] font-bold text-gray-400 tracking-tight">
+                        Select data area
+                    </p>
+                </div>
                 <button onclick="closeCropModal()"
                     class="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-black transition-all">
                     <i class="fa-solid fa-xmark"></i>
