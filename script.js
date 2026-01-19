@@ -1838,7 +1838,7 @@ function renderSummaryStats(container, lang) {
     });
 
     // 다국어 라벨 설정
-    const labelMaxLevel = currentLang === 'ko' ? '최대 고통 레벨' : 'Max Anguish';
+    const labelMaxLevel = currentLang === 'ko' ? '최대 레벨' : 'Max Level';
     const labelBest = currentLang === 'ko' ? '최고 기록' : 'Personal Best';
     const labelTrend = currentLang === 'ko' ? '성장 추이' : 'Performance Trend';
     const labelHistory = currentLang === 'ko' ? '분석 히스토리' : 'Analysis History';
