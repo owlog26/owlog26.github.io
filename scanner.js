@@ -184,21 +184,29 @@ if (typeof currentEntry !== 'undefined' && currentEntry.mode === 'fissure') {
         
         const totalNums = rawTotal.match(/\d+/g);
         if (totalNums) {
-            let cleanTotal = totalNums.join('');
-            
-            // 6자리 제한 (예: 1,900,000 -> 900,000)
-            if (cleanTotal.length > 6) {
-                cleanTotal = cleanTotal.slice(-6);
-            }
-            
-            // 여기서 순수 정수값 추출 (국가별 포맷 영향 없음)
-            numericTotalScore = parseInt(cleanTotal);
-            
-            // 화면 표시용 (사용자 Locale에 따라 . 또는 , 가 찍힘)
-            res.total = numericTotalScore.toLocaleString();
-        } else {
-            res.total = "0";
-        }
+        if (totalNums) {
+    let cleanTotal = totalNums.join('');
+    
+    // [수정] Rift 모드일 경우 5자리 제한, 그 외에는 6자리 제한 설정
+    let limit = 6;
+    if (typeof currentEntry !== 'undefined' && currentEntry.mode === 'rift') {
+        limit = 5;
+    }
+    
+    // 설정된 limit에 따라 뒤에서부터 자름 (예: Rift에서 152890 -> 52890)
+    if (cleanTotal.length > limit) {
+        cleanTotal = cleanTotal.slice(-limit);
+    }
+    
+    // 여기서 순수 정수값 추출
+    numericTotalScore = parseInt(cleanTotal);
+    
+    // 화면 표시용
+    res.total = numericTotalScore.toLocaleString();
+} else {
+    res.total = "0";
+}
+
 
         if (debugText) {
             debugText.innerText = `[RAW DATA]\nTime: ${rawTime}\nStage: ${rawStage} -> ${res.stage}\nLevel: ${rawLevel}\nTotal: ${rawTotal} -> ${res.total}`;
