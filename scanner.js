@@ -86,9 +86,7 @@ async function runMainScan(img) {
     const debugContainer = document.getElementById('debug-canvas-container');
     
     if (img && typeof img.toDataURL === 'function') {
-        // JPEG 포맷, 품질 0.7로 압축 (용량 최적화)
         const fullDataUrl = img.toDataURL('image/jpeg', 0.7);
-        // "data:image/jpeg;base64," 헤더를 제거하고 순수 데이터만 저장
         lastScannedImageData = fullDataUrl.split(',')[1];
     }
     
@@ -161,15 +159,16 @@ async function runMainScan(img) {
 
         res.stage = extractLastNumber(rawStage, "1");
         
-if (typeof currentEntry !== 'undefined' && currentEntry.mode === 'fissure') {
-    if (parseInt(res.stage) >= 11) {
-        res.stage = "10";
-    }
-}
+        // 클래식 모드 보정
+        if (typeof currentEntry !== 'undefined' && currentEntry.mode === 'fissure') {
+            if (parseInt(res.stage) >= 11) {
+                res.stage = "10";
+            }
+        }
         
         res.level = extractLastNumber(rawLevel, "0");
 
-        // [보정 1] 전장 모드: '3' 또는 '대' -> '9'
+        // 전장 모드 보정
         if (typeof currentEntry !== 'undefined' && currentEntry.mode === 'battlefield') {
             if (res.stage === '3' || rawStage.includes('대')) {
                 res.stage = '9';
@@ -179,41 +178,32 @@ if (typeof currentEntry !== 'undefined' && currentEntry.mode === 'fissure') {
         const tM = rawTime.match(/\d{1,2}[:;.\s]\d{2}/);
         if (tM) res.time = tM[0].replace(/[;.\s]/g, ':').padStart(5, '0');
 
-        // [보정 2 & 3] 토탈 스코어 정제 및 국가별 이슈 해결
-        let numericTotalScore = 0; // 순수 숫자값 저장용 변수
-        
+        let numericTotalScore = 0;
         const totalNums = rawTotal.match(/\d+/g);
+        
         if (totalNums) {
-        if (totalNums) {
-    let cleanTotal = totalNums.join('');
-    
-    // [수정] Rift 모드일 경우 5자리 제한, 그 외에는 6자리 제한 설정
-    let limit = 6;
-    if (typeof currentEntry !== 'undefined' && currentEntry.mode === 'rift') {
-        limit = 5;
-    }
-    
-    // 설정된 limit에 따라 뒤에서부터 자름 (예: Rift에서 152890 -> 52890)
-    if (cleanTotal.length > limit) {
-        cleanTotal = cleanTotal.slice(-limit);
-    }
-    
-    // 여기서 순수 정수값 추출
-    numericTotalScore = parseInt(cleanTotal);
-    
-    // 화면 표시용
-    res.total = numericTotalScore.toLocaleString();
-} else {
-    res.total = "0";
-}
-
+            let cleanTotal = totalNums.join('');
+            
+            // 모드별 자릿수 제한
+            let limit = 6;
+            if (typeof currentEntry !== 'undefined' && currentEntry.mode === 'rift') {
+                limit = 5;
+            }
+            
+            if (cleanTotal.length > limit) {
+                cleanTotal = cleanTotal.slice(-limit);
+            }
+            
+            numericTotalScore = parseInt(cleanTotal);
+            res.total = numericTotalScore.toLocaleString();
+        } else {
+            res.total = "0";
+        }
 
         if (debugText) {
             debugText.innerText = `[RAW DATA]\nTime: ${rawTime}\nStage: ${rawStage} -> ${res.stage}\nLevel: ${rawLevel}\nTotal: ${rawTotal} -> ${res.total}`;
         }
 
-        // [중요] lastScannedData에 'numericTotalScore'를 직접 할당
-        // 화면에 표시된 res.total(예: "123.456")을 다시 파싱하지 않으므로 오류 원천 차단
         lastScannedData = {
             time: res.time, 
             level: res.level, 
@@ -221,7 +211,7 @@ if (typeof currentEntry !== 'undefined' && currentEntry.mode === 'fissure') {
             totalScore: numericTotalScore 
         };
 
-        // UI 업데이트 (OWL 전용 ID)
+        // UI 업데이트
         document.getElementById('resStage').innerText = res.stage;
         document.getElementById('resTime').innerText = res.time;
         document.getElementById('resLevel').innerText = res.level;
@@ -252,8 +242,7 @@ if (typeof currentEntry !== 'undefined' && currentEntry.mode === 'fissure') {
 }
 
 /**
- * 3. 이미지 선택 리스너 (수정됨)
- * 직접 크로퍼를 실행하지 않고 script.js의 공용 모달 함수를 호출합니다.
+ * 3. 이미지 선택 리스너
  */
 const imageInput = document.getElementById('imageInput');
 if (imageInput) {
@@ -262,20 +251,14 @@ if (imageInput) {
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (event) => {
-            // script.js의 공용 함수 호출 + 분석 완료 후 'runMainScan'을 실행하도록 예약
             if (typeof openCropModal === 'function') {
                 openCropModal(event.target.result, runMainScan);
             }
         };
         reader.readAsDataURL(file);
-        e.target.value = ""; // 동일 파일 재선택 가능하게 초기화
+        e.target.value = "";
     });
 }
-
-/**
- * 중복 방지를 위해 기존 confirmCrop, closeCropModal 함수는 삭제되었습니다.
- * 이 기능들은 이제 script.js에서 통합 관리됩니다.
- */
 
 function levenshtein(a, b) {
     const m = Array.from({ length: a.length + 1 }, (_, i) => [i]);
