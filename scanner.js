@@ -160,6 +160,13 @@ async function runMainScan(img) {
         };
 
         res.stage = extractLastNumber(rawStage, "1");
+        
+if (typeof currentEntry !== 'undefined' && currentEntry.mode === 'fissure') {
+    if (parseInt(res.stage) >= 11) {
+        res.stage = "10";
+    }
+}
+        
         res.level = extractLastNumber(rawLevel, "0");
 
         // [보정 1] 전장 모드: '3' 또는 '대' -> '9'
