@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>서비스 종료 안내 / Service Termination Notice</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+    <style>
+        body { font-family: "Pretendard", sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+
+    <div class="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+        
+        <div class="h-2 bg-red-500"></div>
+
+        <div class="p-8 md:p-10">
+            <div class="flex justify-center mb-6">
+                <div class="bg-red-50 p-4 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+            </div>
+
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold text-center text-gray-900 mb-4 tracking-tight">
+                    베타 서비스 종료 안내
+                </h1>
+                <p class="text-gray-600 text-center leading-relaxed break-keep">
+                    이미지 기반의 레이팅 시스템은 쉽게 우회할 수 있는 문제가 있어 더이상 다른 유저분들에게 피해가 가지 않도록 서비스를 종료합니다.
+            </div>
+
+            <div class="border-t border-gray-100 my-8"></div>
+
+            <div class="mb-8">
+                <h2 class="text-xl font-bold text-center text-gray-900 mb-4 tracking-tight">
+                    Notice: Beta Service Termination
+                </h2>
+                <p class="text-gray-600 text-center leading-relaxed">
+                    Due to vulnerabilities in the image-based rating system that allow for easy bypassing, we have decided to terminate the beta service to prevent the storage of inappropriate data on our servers.
+                </p>
+            </div>
+
+
+
+        </div>
+    </div>
+
+</body>
+</html>
